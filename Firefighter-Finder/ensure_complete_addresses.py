@@ -153,6 +153,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--input-dir",
+        type=Path,
+        default=None,
+        help="Process every CSV in the directory (overrides --input).",
+    )
     parser.add_argument("--address-column", default="address")
     parser.add_argument("--lat-column", default="lat")
     parser.add_argument("--lon-column", default="lon")
@@ -189,15 +195,10 @@ def write_output(df: pd.DataFrame, output: Path, input_path: Path) -> None:
 def main() -> None:
     args = parse_args()
     input_path = args.input
-    if not input_path.exists():
-        raise SystemExit(f"Input file not found: {input_path}")
+    input_dir = args.input_dir
 
     if not args.skip_network_check:
         require_network()
-
-    output_path = input_path if args.in_place else args.output
-    if output_path is None:
-        raise SystemExit("Provide --output or use --in-place.")
 
     geolocator = Nominatim(user_agent=args.user_agent, timeout=10)
     geocode = RateLimiter(
@@ -209,23 +210,65 @@ def main() -> None:
         return_value_on_exception=None,
     )
 
-    df = load_input(input_path)
     cache: dict[tuple[float, float], str] = {}
-    df, invalid_count, corrected_count = process_dataframe(
-        df,
-        geocode,
-        cache,
-        args.address_column,
-        args.lat_column,
-        args.lon_column,
-    )
-    write_output(df, output_path, input_path)
+    if input_dir:
+        if not input_dir.exists():
+            raise SystemExit(f"Input directory not found: {input_dir}")
+        csv_files = sorted(input_dir.glob("*.csv"))
+        if not csv_files:
+            raise SystemExit(f"No CSV files found in {input_dir}")
 
-    print("\nSummary")
-    print("-------")
-    print(f"Rows with incomplete addresses: {invalid_count}")
-    print(f"Addresses corrected to complete format: {corrected_count}")
-    print(f"Output written to: {output_path}")
+        output_dir = input_dir if args.in_place else args.output
+        if output_dir is None:
+            raise SystemExit("Provide --output or use --in-place for directory mode.")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        total_invalid = 0
+        total_corrected = 0
+        for csv_path in csv_files:
+            df = load_input(csv_path)
+            df, invalid_count, corrected_count = process_dataframe(
+                df,
+                geocode,
+                cache,
+                args.address_column,
+                args.lat_column,
+                args.lon_column,
+            )
+            write_output(df, output_dir / csv_path.name, csv_path)
+            total_invalid += invalid_count
+            total_corrected += corrected_count
+
+        print("\nSummary")
+        print("-------")
+        print(f"Files processed: {len(csv_files)}")
+        print(f"Rows with incomplete addresses: {total_invalid}")
+        print(f"Addresses corrected to complete format: {total_corrected}")
+        print(f"Output written to: {output_dir}")
+    else:
+        if not input_path.exists():
+            raise SystemExit(f"Input file not found: {input_path}")
+
+        output_path = input_path if args.in_place else args.output
+        if output_path is None:
+            raise SystemExit("Provide --output or use --in-place.")
+
+        df = load_input(input_path)
+        df, invalid_count, corrected_count = process_dataframe(
+            df,
+            geocode,
+            cache,
+            args.address_column,
+            args.lat_column,
+            args.lon_column,
+        )
+        write_output(df, output_path, input_path)
+
+        print("\nSummary")
+        print("-------")
+        print(f"Rows with incomplete addresses: {invalid_count}")
+        print(f"Addresses corrected to complete format: {corrected_count}")
+        print(f"Output written to: {output_path}")
 
 
 if __name__ == "__main__":

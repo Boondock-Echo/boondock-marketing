@@ -31,3 +31,13 @@ python ensure_complete_addresses.py \
 
 The script also supports CSV inputs. Use `--in-place` to overwrite the original
 file once you have reviewed the output.
+
+To process every CSV in `rings_csv_with_addresses`, point the script at the
+directory:
+
+```bash
+python ensure_complete_addresses.py \
+  --input-dir rings_csv_with_addresses \
+  --output rings_csv_with_complete_addresses \
+  --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
+```
