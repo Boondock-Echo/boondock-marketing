@@ -1,0 +1,76 @@
+name,address,distance_mi,lat,lon,osm_id,ring
+San Diego Fire-Rescue Department Station No. 1,"1222 1st Avenue, San Diego, 92101",95.23528982746426,32.7179522,-117.164486,368168858,75-100 miles
+San Diego City Fire Station 10,No address tags,95.61134652522313,32.7608509,-117.0638456,368168859,75-100 miles
+San Diego City Fire Station 14,No address tags,94.38867421041931,32.7505532,-117.124898,368168863,75-100 miles
+San Diego City Fire Station #11,San Diego,96.06361326257814,32.715534,-117.139967,368168864,75-100 miles
+San Diego City Fire Station 12,No address tags,98.22747994169973,32.7044035,-117.087852,368168865,75-100 miles
+San Diego City Fire Station 17,No address tags,95.04967612264002,32.7533606,-117.0968412,368168866,75-100 miles
+San Diego City Fire Station 23,No address tags,91.09923480370104,32.7829649,-117.1715868,368168871,75-100 miles
+San Diego City Fire Station 21,No address tags,88.0815286076982,32.794852,-117.255362,368168874,75-100 miles
+San Diego City Fire Station 8,No address tags,93.12131713598895,32.7494883,-117.171633,368168892,75-100 miles
+Ozena Fire Station,No address tags,95.55119568318929,34.6833174,-119.3540062,368168898,75-100 miles
+Apache Saddle Fire Station,No address tags,96.4328128089962,34.860254,-119.210944,368168915,75-100 miles
+San Diego City Fire Station 26,No address tags,96.61981036849829,32.7354113,-117.0799029,368168927,75-100 miles
+San Diego City Fire Station 25,No address tags,90.1913057009925,32.781827,-117.2065266,368168938,75-100 miles
+San Diego City Fire Station 27,No address tags,87.17847794566917,32.833854,-117.201665,368168940,75-100 miles
+San Diego City Fire Station 31,No address tags,93.66913974244942,32.7927623,-117.0664432,368168942,75-100 miles
+San Diego City Fire Station 34,No address tags,94.42395435252587,32.8025726,-117.0252004,368168943,75-100 miles
+San Diego City Fire Station 36,No address tags,88.65116041752503,32.822353,-117.1745199,368168946,75-100 miles
+San Diego City Fire Station 40,No address tags,82.29537300324634,32.95962,-117.122276,368168948,75-100 miles
+San Diego City Fire Station 39,No address tags,91.04440745052607,32.8205797,-117.0985861,368168960,75-100 miles
+San Diego City Fire Station 5,No address tags,93.5934471111924,32.748683,-117.156537,368168961,75-100 miles
+Ventura County FD Station 22,No address tags,84.19254202852935,34.4444149,-119.2853736,473098910,75-100 miles
+Ventura County FD Station 23,No address tags,83.66180155066165,34.394687,-119.3013052,473100594,75-100 miles
+Ventura County FD Station 25,No address tags,88.81304025662311,34.3455942,-119.4195959,473103806,75-100 miles
+Rancho Santa Fe Fire District Station 2 & Training Facility,No address tags,78.76327648992168,33.0224878,-117.1229359,549319754,75-100 miles
+Lakeside Fire Station 3,No address tags,96.98779383617293,32.8442586,-116.88442,624987910,75-100 miles
+Carpinteria Fire Station 1,No address tags,95.24211575108042,34.396881,-119.5174718,648623835,75-100 miles
+Morongo Valley Fire Department,No address tags,79.0200915162225,34.0486175,-116.5780996,765408759,75-100 miles
+Federal Fire Station 13,No address tags,95.45470281243337,32.6835156,-117.2371782,768255372,75-100 miles
+Frazier Park Sub-Station,No address tags,84.51159027161461,34.8231502,-118.9625425,986082252,75-100 miles
+Fire Station #6,1735 South del Dios Road,75.06219931555455,33.1050047,-117.1021854,1102385684,75-100 miles
+Riverside County Fire Department Station #32,No address tags,96.3159248325406,33.6724605,-116.3013264,1272574086,75-100 miles
+San Miguel Fire Station #23,No address tags,99.37816704630205,32.7880303,-116.9030439,1314261369,75-100 miles
+Unnamed Fire Station,No address tags,93.74445417515838,32.7627392,-117.1220584,1337466812,75-100 miles
+Station 35,No address tags,84.20268900988745,32.8769658,-117.2151922,1363137037,75-100 miles
+Riverside County Fire Department Station #35,No address tags,89.46237895229872,33.816892,-116.3964663,1472251796,75-100 miles
+CAL FIRE/Riverside County Fire Department Station #29,No address tags,77.73116395773542,33.5553957,-116.6742762,1694367007,75-100 miles
+Riverside County Fire Department Station #33,No address tags,90.18361467543374,33.7268571,-116.3979059,1694426310,75-100 miles
+Riverside County Fire Department Station #36,"11535 Karen Avenue, Desert Hot Springs",79.52874369441027,33.964459,-116.5630907,1694447213,75-100 miles
+Riverside County Fire Department Station #50,No address tags,88.05678630216724,33.7527665,-116.4304926,1695365960,75-100 miles
+Riverside County Fire Department Station #55,No address tags,93.60460590844883,33.7230197,-116.3383374,1696968613,75-100 miles
+Riverside County Fire Department Station #56,No address tags,89.4571966631989,33.9167023,-116.3897647,1696971633,75-100 miles
+Riverside County Fire Department Station #67,No address tags,91.17120691499147,33.6957382,-116.3870695,1699121951,75-100 miles
+Riverside County Fire Department Station #81,No address tags,95.1284210558311,33.7737485,-116.3028623,1699181489,75-100 miles
+Riverside County Fire Department Station #88,No address tags,98.6656827358872,33.7097466,-116.2517159,1699194149,75-100 miles
+Riverside County Fire Department Station #93,No address tags,96.49550048810383,33.7251154,-116.2869937,1699234616,75-100 miles
+Palm Springs Fire Department Station #3,No address tags,80.98736383490466,33.8524691,-116.5410405,1846245369,75-100 miles
+Palm Springs Fire Department Station #4,No address tags,81.85598639662574,33.797052,-116.5322782,1846245987,75-100 miles
+Cathedral City Fire Department Station #1,No address tags,86.17213866584527,33.7806762,-116.4589822,1846249462,75-100 miles
+Cathedral City Fire Department Station #412,No address tags,85.77285618631825,33.8149199,-116.4612766,1846250119,75-100 miles
+Unnamed Fire Station,No address tags,76.4716131864434,33.0901928,-117.0853903,1999507156,75-100 miles
+Unnamed Fire Station,No address tags,76.44131243341309,33.090876,-117.0852401,1999507158,75-100 miles
+Kern County Fire Station 12,"800 South Curry Street, Tehachapi, 93561",87.25964199120736,35.1239303,-118.449708,3146583610,75-100 miles
+Kern County Fire Dept. Station 56,"1545 Lebec Service Road, Lebec, 93243",81.33111313678717,34.832967,-118.865014,4331566343,75-100 miles
+Fire Station #7,No address tags,95.4662691731013,32.8032519,-116.9924507,5070131345,75-100 miles
+La Mesa Fire Department Station 12,No address tags,95.69562407484693,32.7914698,-117.0057112,5093386352,75-100 miles
+Unnamed Fire Station,No address tags,96.55039426140729,32.7661896,-117.0240733,5133921132,75-100 miles
+Miramar Fire Station #62,No address tags,88.44272574972258,32.8609831,-117.106685,6165276442,75-100 miles
+Unnamed Fire Station,No address tags,97.77119896790367,32.769842,-116.9800707,6189296846,75-100 miles
+Unnamed Fire Station,No address tags,98.32513981785415,32.6843458,-117.1266451,6916734866,75-100 miles
+Palm Springs Fire Department Station #5,"5800 Bolero Road, Palm Springs",84.73327042544122,33.7944839,-116.4821816,7099407882,75-100 miles
+Unnamed Fire Station,No address tags,82.51040934439658,35.1241497,-117.959352,7578972258,75-100 miles
+Ventura County Fire Department Summit Station,No address tags,76.24223755722322,34.4363505,-119.1351773,9670957047,75-100 miles
+Julian-Cuyamaca Fire Protection District Station #56,No address tags,97.25896352980116,33.0801923,-116.6041788,9807529270,75-100 miles
+Cal Fire Julian Fire Headquarters Station #50,No address tags,97.9495550440908,33.0761569,-116.592842,9807529272,75-100 miles
+Unnamed Fire Station,27330 Julian Road,91.55930123346917,33.0691274,-116.7418714,10263014403,75-100 miles
+Unnamed Fire Station,37370 Montezuma Valley Road,95.86827700648554,33.2106946,-116.5259609,10269132574,75-100 miles
+Kern County Fire Station 18,"28381 Braeburn Drive, Stallion Springs, 93561",88.74918390332418,35.0840927,-118.6342689,11206725571,75-100 miles
+Kern County Fire Station 14,"1953 Mojave-Barstow Highway, Mojave, 93501",78.15943290351089,35.0469987,-118.1668141,11206725664,75-100 miles
+Kern County Fire Station 13,"21415 Reeves Street, Tehachapi, 93561",88.28542116684214,35.1316081,-118.4774568,11206730878,75-100 miles
+Kern County Fire Station 16,"28946 Bear Valley Road, Bear Valley Springs, 93561",94.0838416136642,35.1658566,-118.6441185,11206734905,75-100 miles
+CAL FIRE Ramona Station 86,"16310 Highway 67, Ramona, 92065",85.62208104869471,33.0083801,-116.9568953,11796828000,75-100 miles
+Pacific Beach Lifeguard Station,No address tags,88.08871531985191,32.7943815,-117.2561932,12077171792,75-100 miles
+Federal Fire Station 110,No address tags,94.23366943331654,32.6990548,-117.2472509,12467673313,75-100 miles
+Fox Fire Center,No address tags,80.18607331955236,33.2635913,-116.8093063,13315731211,75-100 miles
+Riverside County Fire Department Station 98,"69111 Hacienda Avenue, Desert Hot Springs",85.53475328821338,33.9476768,-116.4579799,13346969098,75-100 miles
