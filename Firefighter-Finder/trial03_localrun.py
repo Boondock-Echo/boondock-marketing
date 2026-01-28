@@ -1,9 +1,12 @@
-from pyrosm import OSM
-import geopandas as gpd
-from shapely.geometry import Point
-import pyproj
+import os
 import time
 from datetime import datetime
+from pathlib import Path
+
+import geopandas as gpd
+import pyproj
+from pyrosm import OSM
+from shapely.geometry import Point
 from tqdm import tqdm  # optional for progress
 
 # === CONFIG ===
@@ -11,6 +14,9 @@ pbf_path = "socal-260118.osm.pbf"  # Update to your actual file path
 center_latlon = (33.93, -117.95)        # La Habra
 rings_miles = [0, 25, 50, 75, 100]
 meters_per_mile = 1609.34
+region = os.environ.get("REGION", "default")
+output_root = Path("outputs") / region
+output_root.mkdir(parents=True, exist_ok=True)
 
 # UTM Zone 11N for Southern California (accurate distance calculations)
 utm_crs = "EPSG:32611"
@@ -77,7 +83,8 @@ for i in tqdm(range(1, len(rings_miles)), desc="Processing rings"):
         print(f"  → Found {len(ring_stations)} stations in {ring_label} ({elapsed:.1f}s)")
         
         # Save each ring
-        ring_stations.to_file(f"fire_stations_{ring_label.replace(' ', '_')}.geojson", driver="GeoJSON")
+        ring_output = output_root / f"fire_stations_{ring_label.replace(' ', '_')}.geojson"
+        ring_stations.to_file(ring_output, driver="GeoJSON")
     
     except Exception as e:
         print(f"ERROR on {ring_label}: {str(e)}")
@@ -85,7 +92,8 @@ for i in tqdm(range(1, len(rings_miles)), desc="Processing rings"):
 # Combine & save all
 if results:
     all_rings = gpd.pd.concat(results, ignore_index=True)
-    all_rings.to_file("fire_stations_all_rings.geojson", driver="GeoJSON")
+    combined_output = output_root / "fire_stations_all_rings.geojson"
+    all_rings.to_file(combined_output, driver="GeoJSON")
     print(f"\nDone! Total stations across all rings: {len(all_rings)}")
     
     # Quick summary with address

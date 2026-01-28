@@ -6,19 +6,21 @@ Uses pyosmium for streaming parsing → very low RAM usage (~1-4 GB peak for lar
 Usage:
     python find_fire_stations_lowmem.py socal-260118.osm.pbf
 
-Output: fire_stations.geojson (GeoJSON FeatureCollection)
+Output: outputs/<region>/fire_stations.geojson (GeoJSON FeatureCollection)
 """
 
-import osmium
 import json
+import os
 import sys
 import time
-import os
 from datetime import datetime
+from pathlib import Path
+
+import osmium
 from tqdm import tqdm  # optional progress bar
 
 class FireStationHandler(osmium.SimpleHandler):
-    def __init__(self, output_file="fire_stations.geojson"):
+    def __init__(self, output_file: Path):
         super().__init__()
         self.output_file = output_file
         self.features = []
@@ -101,6 +103,10 @@ if __name__ == "__main__":
         sys.exit(1)
 
     pbf_path = sys.argv[1]
+    region = os.environ.get("REGION", "default")
+    output_dir = Path("outputs") / region
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / "fire_stations.geojson"
 
     if not os.path.exists(pbf_path):
         print(f"File not found: {pbf_path}")
@@ -110,7 +116,7 @@ if __name__ == "__main__":
     print("This is a streaming process — memory usage should stay low.")
     print("Progress will update every 50 stations found.\n")
 
-    handler = FireStationHandler()
+    handler = FireStationHandler(output_file)
     try:
         # locations=True enables lat/lon access on nodes
         handler.apply_file(pbf_path, locations=True)
