@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover - geopandas optional for CSV-only usage
 
 
 DEFAULT_USER_AGENT = "FireStationFinder-Mark-LaHabra (your.email@example.com)"
-STATE_ZIP_RE = re.compile(r"\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b")
+STATE_ZIP_RE = re.compile(r"\b([A-Z]{2})\s*,?\s+(\d{5}(?:-\d{4})?)\b")
 
 
 def require_network(host: str = "nominatim.openstreetmap.org", port: int = 443, timeout: int = 5) -> None:

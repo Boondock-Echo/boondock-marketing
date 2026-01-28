@@ -74,3 +74,17 @@ python ensure_complete_addresses.py \
   --output outputs/<region>/rings_csv_with_complete_addresses \
   --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
 ```
+
+## Checks
+
+Run the automated checks with:
+
+```bash
+make check
+```
+
+Or run the test suite directly:
+
+```bash
+python -m pytest
+```

@@ -6,5 +6,6 @@ osmium
 pandas
 pyproj
 pyrosm
+pytest
 shapely
 tqdm

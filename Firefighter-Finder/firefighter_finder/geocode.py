@@ -67,3 +67,21 @@ def reverse_geocode_address(
         return f"Lookup failed: {type(exc).__name__}"
     except Exception:
         return "Error during lookup"
+
+
+def reverse_geocode_address_cached(
+    lat: Optional[float],
+    lon: Optional[float],
+    geocode: Callable,
+    cache: dict[tuple[float, float], str],
+) -> str:
+    if lat is None or lon is None:
+        return "Missing lat/lon"
+
+    key = (float(lat), float(lon))
+    if key in cache:
+        return cache[key]
+
+    result = reverse_geocode_address(lat, lon, geocode)
+    cache[key] = result
+    return result

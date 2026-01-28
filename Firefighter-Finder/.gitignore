@@ -10,3 +10,10 @@ rings_csv/
 
 # Caches
 cache/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Test cache
+.pytest_cache/
