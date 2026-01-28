@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Tuple
 
+import json
+
 
 @dataclass(frozen=True)
 class RingDefinition:
@@ -22,9 +24,60 @@ DEFAULT_RINGS = [
     RingDefinition(75, 100, "75-100 miles", "red"),
 ]
 
-REGION_CENTERS = {
-    "la-habra": DEFAULT_CENTER,
-}
+DEFAULT_REGION_NAME = "la-habra"
+
+
+@dataclass(frozen=True)
+class RegionConfig:
+    name: str
+    center_lat: float
+    center_lon: float
+    rings: tuple[RingDefinition, ...]
+    pbf_url: str | None = None
+
+    @property
+    def center_latlon(self) -> tuple[float, float]:
+        return (self.center_lat, self.center_lon)
+
+
+def ring_definition_from_dict(data: dict) -> RingDefinition:
+    return RingDefinition(
+        min_miles=float(data["min_miles"]),
+        max_miles=float(data["max_miles"]),
+        label=str(data["label"]),
+        color=str(data["color"]),
+    )
+
+
+def ring_definition_to_dict(ring: RingDefinition) -> dict:
+    return {
+        "min_miles": ring.min_miles,
+        "max_miles": ring.max_miles,
+        "label": ring.label,
+        "color": ring.color,
+    }
+
+
+def region_config_from_dict(name: str, data: dict) -> RegionConfig:
+    rings = tuple(ring_definition_from_dict(ring) for ring in data["rings"])
+    return RegionConfig(
+        name=name,
+        center_lat=float(data["center_lat"]),
+        center_lon=float(data["center_lon"]),
+        rings=rings,
+        pbf_url=data.get("pbf_url"),
+    )
+
+
+def region_config_to_dict(region: RegionConfig) -> dict:
+    payload = {
+        "center_lat": region.center_lat,
+        "center_lon": region.center_lon,
+        "rings": [ring_definition_to_dict(ring) for ring in region.rings],
+    }
+    if region.pbf_url:
+        payload["pbf_url"] = region.pbf_url
+    return payload
 
 
 @dataclass(frozen=True)
@@ -36,12 +89,15 @@ class OutputPaths:
     rings_output_dir: Path
 
 
-def get_region(default: str = "default") -> str:
+def get_region(default: str = DEFAULT_REGION_NAME) -> str:
     return os.environ.get("REGION", default)
 
 
-def build_output_paths(region: str, output_base: Path | str = "outputs") -> OutputPaths:
-    output_root = Path(output_base) / region
+def build_output_paths(
+    region: str | RegionConfig, output_base: Path | str = "outputs"
+) -> OutputPaths:
+    region_name = region.name if isinstance(region, RegionConfig) else region
+    output_root = Path(output_base) / region_name
     return OutputPaths(
         output_root=output_root,
         input_file=output_root / "fire_stations.geojson",
@@ -58,3 +114,24 @@ def ensure_output_dirs(paths: OutputPaths) -> None:
 
 def rings_to_labels(rings: Iterable[RingDefinition]) -> list[str]:
     return [ring.label for ring in rings]
+
+
+def load_regions(path: Path | str = "regions.json") -> dict[str, RegionConfig]:
+    config_path = Path(path)
+    if not config_path.exists():
+        return {}
+    with config_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    regions: dict[str, RegionConfig] = {}
+    for name, config in data.items():
+        regions[name] = region_config_from_dict(name, config)
+    return regions
+
+
+def save_regions(regions: dict[str, RegionConfig], path: Path | str = "regions.json") -> None:
+    config_path = Path(path)
+    payload = {
+        name: region_config_to_dict(region) for name, region in sorted(regions.items())
+    }
+    with config_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, sort_keys=True)

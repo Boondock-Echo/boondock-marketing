@@ -7,15 +7,21 @@ Output: outputs/<region>/fire_stations_with_rings.geojson + per-ring CSVs + inte
 
 import geopandas as gpd
 
-from firefighter_finder.config import DEFAULT_CENTER, DEFAULT_RINGS, build_output_paths, get_region
+from firefighter_finder.config import build_output_paths, get_region, load_regions
 from firefighter_finder.export import create_interactive_map, export_geojson, export_ring_csvs
 from firefighter_finder.rings import add_distance_and_rings
 
 
 def main() -> None:
-    center_lat, center_lon = DEFAULT_CENTER
     region = get_region()
-    paths = build_output_paths(region)
+    regions = load_regions()
+    if region not in regions:
+        raise SystemExit(
+            f"Error: Region '{region}' not found in regions.json. "
+            "Run main.py to add it."
+        )
+    region_config = regions[region]
+    paths = build_output_paths(region_config)
     paths.output_root.mkdir(parents=True, exist_ok=True)
 
     print("Loading fire stations...")
@@ -27,23 +33,25 @@ def main() -> None:
     print(f"Loaded {len(stations)} fire stations.")
     print("Calculating distances...")
 
-    stations = add_distance_and_rings(stations, center_lat, center_lon, DEFAULT_RINGS)
+    stations = add_distance_and_rings(
+        stations, region_config.center_lat, region_config.center_lon, region_config.rings
+    )
     stations_in_scope = stations[stations["ring"] != ">100 miles"].copy()
 
     export_geojson(stations, paths.output_geojson)
     print(f"\nSaved ring-assigned GeoJSON to: {paths.output_geojson}")
 
     print("\nExporting CSVs per ring...")
-    export_ring_csvs(stations_in_scope, DEFAULT_RINGS, paths.rings_output_dir)
+    export_ring_csvs(stations_in_scope, region_config.rings, paths.rings_output_dir)
 
     print("\nCreating interactive map...")
     create_interactive_map(
         stations_in_scope,
-        center_lat,
-        center_lon,
-        DEFAULT_RINGS,
+        region_config.center_lat,
+        region_config.center_lon,
+        region_config.rings,
         paths.map_file,
-        center_label="La Habra",
+        center_label=region_config.name,
     )
 
     print(f"Interactive map saved to: {paths.map_file}")
