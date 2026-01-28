@@ -1,7 +1,10 @@
-import osmnx as ox
+import os
+from pathlib import Path
+
 import geopandas as gpd
-from shapely.geometry import Point
+import osmnx as ox
 import pandas as pd
+from shapely.geometry import Point
 from tqdm import tqdm
 import time
 from datetime import datetime
@@ -11,6 +14,9 @@ center_point = (33.93, -117.95)          # La Habra lat, lon
 tags = {'amenity': 'fire_station'}       # change to 'police' etc.
 rings_miles = [0, 25, 50, 75, 100]       # your annuli
 meters_per_mile = 1609.34
+region = os.environ.get("REGION", "default")
+output_root = Path("outputs") / region
+output_root.mkdir(parents=True, exist_ok=True)
 
 # Tune for large queries
 ox.settings.overpass_settings = '[out:json][timeout:1800][maxsize:1073741824]'
@@ -54,8 +60,9 @@ for i in tqdm(range(1, len(rings_meters)), desc="Processing rings"):
         print(f"  → Finished {ring_label} in {elapsed:.1f} seconds ({len(ring_gdf)} features after diff)")
         
         # Optional: save each ring immediately (good for resuming)
-        ring_gdf.to_file(f"fire_stations_{ring_label.replace(' ', '_')}.geojson", driver="GeoJSON")
-        print(f"  → Saved to fire_stations_{ring_label.replace(' ', '_')}.geojson")
+        ring_output = output_root / f"fire_stations_{ring_label.replace(' ', '_')}.geojson"
+        ring_gdf.to_file(ring_output, driver="GeoJSON")
+        print(f"  → Saved to {ring_output}")
     
     except Exception as e:
         print(f"  → ERROR on {ring_label}: {str(e)}")
@@ -64,9 +71,10 @@ for i in tqdm(range(1, len(rings_meters)), desc="Processing rings"):
 # === FINAL COMBINE & SAVE ===
 if results:
     all_rings = gpd.pd.concat(results, ignore_index=True)
-    all_rings.to_file("fire_stations_all_rings.geojson", driver="GeoJSON")
+    combined_output = output_root / "fire_stations_all_rings.geojson"
+    all_rings.to_file(combined_output, driver="GeoJSON")
     print(f"\nAll done! Total features: {len(all_rings)}")
-    print("Saved combined file: fire_stations_all_rings.geojson")
+    print(f"Saved combined file: {combined_output}")
     
     # Nice summary table (with basic address if available)
     summary = all_rings[['name', 'addr:housenumber', 'addr:street', 'ring_label']].copy()

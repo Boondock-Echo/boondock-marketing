@@ -9,6 +9,7 @@ Default behavior:
 """
 
 import argparse
+import os
 import socket
 from pathlib import Path
 
@@ -18,8 +19,10 @@ from geopy.extra.rate_limiter import RateLimiter
 from geopy.exc import GeocoderServiceError, GeocoderTimedOut, GeocoderUnavailable
 from tqdm import tqdm
 
-DEFAULT_INPUT_DIR = Path("rings_csv")
-DEFAULT_OUTPUT_DIR = Path("rings_csv_with_addresses")
+REGION = os.environ.get("REGION", "default")
+OUTPUT_ROOT = Path("outputs") / REGION
+DEFAULT_INPUT_DIR = OUTPUT_ROOT / "rings_csv"
+DEFAULT_OUTPUT_DIR = OUTPUT_ROOT / "rings_csv_with_addresses"
 DEFAULT_USER_AGENT = "FireStationFinder-Mark-LaHabra (your.email@example.com)"
 
 

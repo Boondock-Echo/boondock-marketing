@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
 Assign fire stations to distance rings + export CSVs per ring + create interactive map
-Input:  fire_stations.geojson
-Output: fire_stations_with_rings.geojson + per-ring CSVs + interactive map.html
+Input:  outputs/<region>/fire_stations.geojson
+Output: outputs/<region>/fire_stations_with_rings.geojson + per-ring CSVs + interactive map.html
 """
 
-import geopandas as gpd
-import pandas as pd
-import folium
-from shapely.geometry import Point
-import pyproj
 import os
 from math import radians, sin, cos, sqrt, atan2
+from pathlib import Path
+
+import folium
+import geopandas as gpd
+import pandas as pd
+from shapely.geometry import Point
 
 # === CONFIG ===
 CENTER_LAT = 33.93
@@ -25,9 +26,14 @@ RINGS = [
     (75, 100, "75-100 miles", "red")
 ]
 
-INPUT_FILE = "fire_stations.geojson"
-OUTPUT_GEOJSON = "fire_stations_with_rings.geojson"
-MAP_FILE = "fire_stations_map.html"
+REGION = os.environ.get("REGION", "default")
+OUTPUT_ROOT = Path("outputs") / REGION
+OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+
+INPUT_FILE = OUTPUT_ROOT / "fire_stations.geojson"
+OUTPUT_GEOJSON = OUTPUT_ROOT / "fire_stations_with_rings.geojson"
+MAP_FILE = OUTPUT_ROOT / "fire_stations_map.html"
+RINGS_OUTPUT_DIR = OUTPUT_ROOT / "rings_csv"
 
 # Haversine function (straight-line distance in miles)
 def haversine(lat1, lon1, lat2, lon2):
@@ -80,12 +86,12 @@ print(f"\nSaved ring-assigned GeoJSON to: {OUTPUT_GEOJSON}")
 
 # === Export per-ring CSVs ===
 print("\nExporting CSVs per ring...")
-os.makedirs("rings_csv", exist_ok=True)
+RINGS_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 for min_d, max_d, label, _ in RINGS:
     ring_df = stations_in_scope[stations_in_scope['ring'] == label]
     if not ring_df.empty:
-        csv_path = f"rings_csv/fire_stations_{label.replace(' ', '_')}.csv"
+        csv_path = RINGS_OUTPUT_DIR / f"fire_stations_{label.replace(' ', '_')}.csv"
         ring_df[['name', 'address', 'distance_mi', 'lat', 'lon', 'osm_id', 'ring']].to_csv(
             csv_path, index=False
         )

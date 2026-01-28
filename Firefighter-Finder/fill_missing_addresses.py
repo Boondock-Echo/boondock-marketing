@@ -4,16 +4,23 @@ Fill missing addresses in fire_stations_with_rings.geojson using Nominatim rever
 Only processes rows with "No address tags"
 """
 
+import os
+import time
+from pathlib import Path
+
 import geopandas as gpd
 import pandas as pd
-from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
-import time
+from geopy.geocoders import Nominatim
 from tqdm import tqdm
 
 # === CONFIG ===
-INPUT_FILE = "fire_stations_with_rings.geojson"      # or your CSV/GeoJSON
-OUTPUT_FILE = "fire_stations_with_filled_addresses.geojson"
+REGION = os.environ.get("REGION", "default")
+OUTPUT_ROOT = Path("outputs") / REGION
+OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+
+INPUT_FILE = OUTPUT_ROOT / "fire_stations_with_rings.geojson"      # or your CSV/GeoJSON
+OUTPUT_FILE = OUTPUT_ROOT / "fire_stations_with_filled_addresses.geojson"
 USER_AGENT = "FireStationFinder-Mark-LaHabra (your.email@example.com)"  # ← Change to your real email!
 
 # === MAIN ===

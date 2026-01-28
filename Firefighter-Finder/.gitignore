@@ -1,0 +1,12 @@
+# Outputs
+outputs/
+
+# Generated exports
+*.geojson
+*.html
+
+# CSV exports
+rings_csv/
+
+# Caches
+cache/
