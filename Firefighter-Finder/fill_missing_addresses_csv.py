@@ -84,10 +84,16 @@ def process_file(path: Path, output_dir: Path, geocode, cache: dict, in_place: b
     if missing_count == 0:
         print(f"{path.name}: no missing addresses found.")
     else:
-        tqdm.pandas(desc=f"Reverse geocoding {path.name}")
-        df.loc[missing_mask, "address"] = df.loc[missing_mask].progress_apply(
-            lambda row: get_address(row, geocode, cache), axis=1
-        )
+        missing_rows = df.loc[missing_mask]
+        addresses = [
+            get_address(row, geocode, cache)
+            for _, row in tqdm(
+                missing_rows.iterrows(),
+                total=missing_count,
+                desc=f"Reverse geocoding {path.name}",
+            )
+        ]
+        df.loc[missing_mask, "address"] = addresses
 
     updated_count = int(
         df.loc[missing_mask, "address"].astype(str).str.contains("No address tags").sum()
