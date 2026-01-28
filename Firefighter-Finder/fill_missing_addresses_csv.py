@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 DEFAULT_INPUT_DIR = Path("rings_csv")
 DEFAULT_OUTPUT_DIR = Path("rings_csv_with_addresses")
-DEFAULT_USER_AGENT = "FireStationFinder-Mark-LaHabra (your.email@example.com)"
+DEFAULT_USER_AGENT = "FireStation Finder-Mark-LaHabra (mark@boondocktechnologies.com)"
 
 
 def require_network(host: str = "nominatim.openstreetmap.org", port: int = 443, timeout: int = 5) -> None:
