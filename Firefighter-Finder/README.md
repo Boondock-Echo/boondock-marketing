@@ -1,6 +1,25 @@
 # boondock-marketing
 Tools for marketing including address discovery and CRM
 
+## Firefighter Finder package layout
+
+Reusable Firefighter Finder logic now lives in the `firefighter_finder/` package:
+
+- `config.py`: region centers, ring definitions, and output paths
+- `osm.py`: PBF download/loading helpers plus fire station extraction
+- `rings.py`: distance computations, ring assignment, and buffer-based ring filtering
+- `geocode.py`: reverse-geocoding utilities
+- `export.py`: GeoJSON/CSV/HTML map exporters
+
+Scripts in the repo are thin entry points that call into this package.
+
+## Primary entry points
+
+- `find_fire_stations_lowmem.py`: stream fire station extraction from a `.osm.pbf`
+- `assign_rings_map_and_csv_export.py`: assign distance rings and export GeoJSON/CSV/HTML
+- `fill_missing_addresses_csv.py`: fill missing addresses in exported CSVs
+- `ensure_complete_addresses.py`: validate/repair mailing addresses in GeoJSON or CSV exports
+
 ## Outputs and caches
 
 Pipeline outputs now live under `outputs/<region>/` (default region: `default`).
