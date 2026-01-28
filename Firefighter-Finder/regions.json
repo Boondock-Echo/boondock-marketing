@@ -1,0 +1,33 @@
+{
+  "la-habra": {
+    "center_lat": 33.93,
+    "center_lon": -117.95,
+    "pbf_url": "https://download.geofabrik.de/north-america/us/california-latest.osm.pbf",
+    "rings": [
+      {
+        "color": "green",
+        "label": "0-25 miles",
+        "max_miles": 25,
+        "min_miles": 0
+      },
+      {
+        "color": "blue",
+        "label": "25-50 miles",
+        "max_miles": 50,
+        "min_miles": 25
+      },
+      {
+        "color": "orange",
+        "label": "50-75 miles",
+        "max_miles": 75,
+        "min_miles": 50
+      },
+      {
+        "color": "red",
+        "label": "75-100 miles",
+        "max_miles": 100,
+        "min_miles": 75
+      }
+    ]
+  }
+}
