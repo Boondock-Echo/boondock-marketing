@@ -1,11 +1,105 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from enum import Enum
+import json
+import logging
+from pathlib import Path
 import socket
-from typing import Callable, Optional
+from typing import Callable, Generic, Optional, TypeVar
 
 from geopy.exc import GeocoderServiceError, GeocoderTimedOut, GeocoderUnavailable
 from geopy.extra.rate_limiter import RateLimiter
 from geopy.geocoders import Nominatim
+
+logger = logging.getLogger(__name__)
+T = TypeVar("T")
+
+
+class GeocodeErrorCode(str, Enum):
+    EMPTY_QUERY = "empty-query"
+    MISSING_LAT_LON = "missing-lat-lon"
+    NO_RESULTS = "no-results"
+    INCOMPLETE_ADDRESS = "incomplete-address"
+    TIMEOUT = "timeout"
+    SERVICE_UNAVAILABLE = "service-unavailable"
+    SERVICE_ERROR = "service-error"
+    UNEXPECTED_ERROR = "unexpected-error"
+
+
+@dataclass(frozen=True)
+class GeocodeResult(Generic[T]):
+    value: T | None
+    error_code: GeocodeErrorCode | None = None
+    error_message: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        return self.error_code is None
+
+
+@dataclass
+class ReverseGeocodeCache:
+    data: dict[tuple[float, float], GeocodeResult]
+    path: Path | None = None
+
+    @classmethod
+    def load(cls, path: Path) -> "ReverseGeocodeCache":
+        if not path.exists():
+            return cls({}, path)
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            logger.warning("Reverse geocode cache file is invalid JSON: %s", path)
+            return cls({}, path)
+
+        if not isinstance(raw, dict):
+            logger.warning("Reverse geocode cache file has unexpected format: %s", path)
+            return cls({}, path)
+
+        data: dict[tuple[float, float], GeocodeResult] = {}
+        for key, payload in raw.items():
+            try:
+                lat_str, lon_str = key.split(",", 1)
+                lat = float(lat_str)
+                lon = float(lon_str)
+            except (ValueError, AttributeError):
+                continue
+
+            if not isinstance(payload, dict):
+                continue
+
+            error_code = payload.get("error_code")
+            data[(lat, lon)] = GeocodeResult(
+                value=payload.get("value"),
+                error_code=GeocodeErrorCode(error_code) if error_code else None,
+                error_message=payload.get("error_message"),
+            )
+
+        return cls(data, path)
+
+    def get(self, key: tuple[float, float]) -> GeocodeResult | None:
+        return self.data.get(key)
+
+    def set(self, key: tuple[float, float], value: GeocodeResult) -> None:
+        self.data[key] = value
+        if self.path:
+            self.save()
+
+    def save(self) -> None:
+        if not self.path:
+            return
+        payload = {
+            f"{lat},{lon}": {
+                "value": result.value,
+                "error_code": result.error_code.value if result.error_code else None,
+                "error_message": result.error_message,
+            }
+            for (lat, lon), result in self.data.items()
+        }
+        tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
+        tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        tmp_path.replace(self.path)
 
 
 def require_network(host: str = "nominatim.openstreetmap.org", port: int = 443, timeout: int = 5) -> None:
@@ -60,33 +154,73 @@ def build_rate_limited_forward_geocoder(
     )
 
 
-def geocode_place(query: str, geocode: Callable) -> tuple[float, float] | None:
+def geocode_place(query: str, geocode: Callable) -> GeocodeResult:
     if not query:
-        return None
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.EMPTY_QUERY,
+            error_message="Query cannot be empty.",
+        )
 
     try:
         location = geocode(query, exactly_one=True, addressdetails=True)
         if not location or not getattr(location, "raw", None):
-            return None
-        return (location.latitude, location.longitude)
-    except (GeocoderUnavailable, GeocoderTimedOut, GeocoderServiceError):
-        return None
-    except Exception:
-        return None
+            return GeocodeResult(
+                value=None,
+                error_code=GeocodeErrorCode.NO_RESULTS,
+                error_message="No results found.",
+            )
+        return GeocodeResult(value=(location.latitude, location.longitude))
+    except GeocoderTimedOut as exc:
+        logger.warning("Geocode lookup timed out: %s", exc)
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.TIMEOUT,
+            error_message=str(exc),
+        )
+    except GeocoderUnavailable as exc:
+        logger.warning("Geocode service unavailable: %s", exc)
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.SERVICE_UNAVAILABLE,
+            error_message=str(exc),
+        )
+    except GeocoderServiceError as exc:
+        logger.warning("Geocode service error: %s", exc)
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.SERVICE_ERROR,
+            error_message=str(exc),
+        )
+    except Exception as exc:
+        logger.exception("Unexpected error during geocode lookup.")
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.UNEXPECTED_ERROR,
+            error_message=str(exc),
+        )
 
 
 def reverse_geocode_address(
     lat: Optional[float],
     lon: Optional[float],
     geocode: Callable,
-) -> str:
+) -> GeocodeResult:
     if lat is None or lon is None:
-        return "Missing lat/lon"
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.MISSING_LAT_LON,
+            error_message="Missing lat/lon.",
+        )
 
     try:
         location = geocode((lat, lon), exactly_one=True, addressdetails=True)
         if not location or not getattr(location, "raw", None):
-            return "No address found via reverse geocoding"
+            return GeocodeResult(
+                value=None,
+                error_code=GeocodeErrorCode.NO_RESULTS,
+                error_message="No address found via reverse geocoding.",
+            )
 
         addr = location.raw.get("address") or {}
         parts = [
@@ -97,27 +231,62 @@ def reverse_geocode_address(
             addr.get("postcode"),
         ]
         full_addr = ", ".join([p for p in parts if p])
-        return full_addr if full_addr else "Address found but incomplete"
+        if full_addr:
+            return GeocodeResult(value=full_addr)
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.INCOMPLETE_ADDRESS,
+            error_message="Address found but incomplete.",
+        )
 
-    except (GeocoderUnavailable, GeocoderTimedOut, GeocoderServiceError) as exc:
-        return f"Lookup failed: {type(exc).__name__}"
-    except Exception:
-        return "Error during lookup"
+    except GeocoderTimedOut as exc:
+        logger.warning("Reverse geocode timed out: %s", exc)
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.TIMEOUT,
+            error_message=str(exc),
+        )
+    except GeocoderUnavailable as exc:
+        logger.warning("Reverse geocode unavailable: %s", exc)
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.SERVICE_UNAVAILABLE,
+            error_message=str(exc),
+        )
+    except GeocoderServiceError as exc:
+        logger.warning("Reverse geocode service error: %s", exc)
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.SERVICE_ERROR,
+            error_message=str(exc),
+        )
+    except Exception as exc:
+        logger.exception("Unexpected error during reverse geocode lookup.")
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.UNEXPECTED_ERROR,
+            error_message=str(exc),
+        )
 
 
 def reverse_geocode_address_cached(
     lat: Optional[float],
     lon: Optional[float],
     geocode: Callable,
-    cache: dict[tuple[float, float], str],
-) -> str:
+    cache: ReverseGeocodeCache,
+) -> GeocodeResult:
     if lat is None or lon is None:
-        return "Missing lat/lon"
+        return GeocodeResult(
+            value=None,
+            error_code=GeocodeErrorCode.MISSING_LAT_LON,
+            error_message="Missing lat/lon.",
+        )
 
     key = (float(lat), float(lon))
-    if key in cache:
-        return cache[key]
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
 
     result = reverse_geocode_address(lat, lon, geocode)
-    cache[key] = result
+    cache.set(key, result)
     return result
