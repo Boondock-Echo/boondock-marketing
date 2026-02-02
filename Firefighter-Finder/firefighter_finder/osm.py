@@ -22,9 +22,11 @@ class FireStationHandler(osmium.SimpleHandler):
         super().__init__()
         self.output_file = output_file
         self.progress_every = progress_every
-        self.features: list[dict] = []
         self.count = 0
         self.start_time = time.time()
+        self._first_feature = True
+        self._stream = self.output_file.open("w", encoding="utf-8")
+        self._stream.write('{"type": "FeatureCollection", "features": [\n')
 
     def node(self, n):
         if n.tags.get("amenity") != "fire_station":
@@ -63,7 +65,10 @@ class FireStationHandler(osmium.SimpleHandler):
             },
         }
 
-        self.features.append(feature)
+        if not self._first_feature:
+            self._stream.write(",\n")
+        json.dump(feature, self._stream, ensure_ascii=False)
+        self._first_feature = False
         self.count += 1
 
         if self.progress_every and self.count % self.progress_every == 0:
@@ -79,10 +84,8 @@ class FireStationHandler(osmium.SimpleHandler):
         print(f"Total fire stations found: {self.count}")
         print(f"Time taken: {elapsed:.1f} seconds")
 
-        geojson = {"type": "FeatureCollection", "features": self.features}
-
-        with self.output_file.open("w", encoding="utf-8") as f:
-            json.dump(geojson, f, indent=2, ensure_ascii=False)
+        self._stream.write("\n]}\n")
+        self._stream.close()
 
         print(f"Saved to: {self.output_file}")
         return self.count
