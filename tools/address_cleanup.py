@@ -390,4 +390,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nInterrupted by user. Exiting without completing output.")
+        raise SystemExit(130)

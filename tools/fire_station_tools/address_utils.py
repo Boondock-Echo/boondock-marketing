@@ -150,12 +150,18 @@ def write_output(df: pd.DataFrame, output: Path, input_path: Path) -> None:
         output = input_path
     suffix = output.suffix.lower()
     output.parent.mkdir(parents=True, exist_ok=True)
-    if suffix in {".geojson", ".json"}:
-        df.to_file(output, driver="GeoJSON")
-    elif suffix == ".csv":
-        df.to_csv(output, index=False)
-    else:
-        raise SystemExit(f"Unsupported output type: {suffix}")
+    try:
+        if suffix in {".geojson", ".json"}:
+            df.to_file(output, driver="GeoJSON")
+        elif suffix == ".csv":
+            with output.open("w", newline="", encoding="utf-8") as handle:
+                df.to_csv(handle, index=False)
+        else:
+            raise SystemExit(f"Unsupported output type: {suffix}")
+    except KeyboardInterrupt:
+        if output.exists():
+            output.unlink()
+        raise
 
 
 def fill_missing_addresses(
