@@ -49,6 +49,10 @@ Use `--input-dir` to process a folder and `--in-place` to overwrite files after
 review. Add `--non-interactive` to skip prompts and rely on reverse geocoding.
 Use `--enable-forward-search` to fall back to a forward lookup (web search style)
 when reverse geocoding returns no results.
+If you see a "No outbound network" error, it means the environment cannot reach
+`nominatim.openstreetmap.org` (not a WSL-specific issue). Check DNS/VPN/firewall
+settings, or run with `--skip-network-check` to proceed without the preflight
+check (geocoding still requires internet access).
 
 ## Examples
 

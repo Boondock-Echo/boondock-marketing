@@ -24,7 +24,10 @@ def require_network(host: str = "nominatim.openstreetmap.org", port: int = 443, 
     except OSError as exc:
         raise SystemExit(
             f"\nNo outbound network to {host}:{port} ({exc}).\n"
-            "Fix routing/DNS/VPN/firewall first, then re-run.\n"
+            "This is not specific to WSL; it indicates the environment cannot reach the internet.\n"
+            "Check DNS, VPN, firewall rules, or proxy settings, then re-run. "
+            "If you still want to proceed without the connectivity check, use --skip-network-check "
+            "(reverse geocoding will still fail without internet access).\n"
         )
 
 
