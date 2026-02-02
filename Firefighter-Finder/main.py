@@ -117,11 +117,13 @@ def prompt_new_region(regions: dict[str, RegionConfig]) -> RegionConfig:
             if not location_query:
                 print("Please enter a city/state or ZIP code.")
                 continue
-            coords = geocode_place(location_query, geocode)
-            if coords is None:
-                print("Location not found. Please try a different search.")
+            result = geocode_place(location_query, geocode)
+            if result.value is None:
+                detail = f" ({result.error_code})" if result.error_code else ""
+                message = result.error_message or "Location not found."
+                print(f"{message}{detail} Please try a different search.")
                 continue
-            center_lat, center_lon = coords
+            center_lat, center_lon = result.value
             break
         rings = prompt_rings()
         pbf_url = prompt_input("PBF URL (optional, press Enter to skip): ") or None

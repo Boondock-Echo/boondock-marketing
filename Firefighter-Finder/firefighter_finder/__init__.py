@@ -13,6 +13,9 @@ from .config import (
 )
 from .export import create_interactive_map, export_geojson, export_ring_csvs
 from .geocode import (
+    GeocodeErrorCode,
+    GeocodeResult,
+    ReverseGeocodeCache,
     build_forward_geocoder,
     build_rate_limited_forward_geocoder,
     build_rate_limited_reverse_geocoder,
@@ -42,6 +45,8 @@ __all__ = [
     "build_rate_limited_forward_geocoder",
     "build_rate_limited_reverse_geocoder",
     "build_reverse_geocoder",
+    "GeocodeErrorCode",
+    "GeocodeResult",
     "create_interactive_map",
     "download_pbf",
     "export_geojson",
@@ -53,6 +58,7 @@ __all__ = [
     "load_regions",
     "load_fire_stations_pyrosm",
     "query_overpass_rings",
+    "ReverseGeocodeCache",
     "require_network",
     "reverse_geocode_address",
     "save_regions",
