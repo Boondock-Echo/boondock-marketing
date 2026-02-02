@@ -12,7 +12,7 @@ from firefighter_finder.config import (
     RegionConfig,
     RingDefinition,
     build_output_paths,
-    outputs_complete,
+    expected_outputs_exist,
 )
 from firefighter_finder.config import load_regions, save_regions
 from firefighter_finder.export import create_interactive_map, export_geojson, export_ring_csvs
@@ -223,10 +223,13 @@ def main() -> None:
     regions[region.name] = region
     paths = build_output_paths(region)
     cached_pbf = pbf_cache_path(region.name)
-    if outputs_complete(paths):
+    if expected_outputs_exist(paths):
         print("Outputs already exist for this region.")
-        if cached_pbf.exists() and not prompt_yes_no("Re-run the pipeline?", default=False):
-            print("Exiting without running extraction.")
+        if not prompt_yes_no("Re-run the pipeline?", default=False):
+            if cached_pbf.exists():
+                print("Cached PBF found. Exiting without running extraction.")
+            else:
+                print("Exiting without running extraction.")
             return
     region, pbf_path = ensure_pbf(region)
     regions[region.name] = region

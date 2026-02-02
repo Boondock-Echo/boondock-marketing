@@ -112,16 +112,18 @@ def ensure_output_dirs(paths: OutputPaths) -> None:
     paths.rings_output_dir.mkdir(parents=True, exist_ok=True)
 
 
+def expected_outputs_exist(paths: OutputPaths) -> bool:
+    return (
+        paths.input_file.is_file()
+        and paths.output_geojson.is_file()
+        and paths.map_file.is_file()
+        and paths.rings_output_dir.is_dir()
+        and any(paths.rings_output_dir.glob("*.csv"))
+    )
+
+
 def outputs_complete(paths: OutputPaths) -> bool:
-    if not paths.input_file.is_file():
-        return False
-    if not paths.output_geojson.is_file():
-        return False
-    if not paths.map_file.is_file():
-        return False
-    if not paths.rings_output_dir.is_dir():
-        return False
-    return any(paths.rings_output_dir.glob("*.csv"))
+    return expected_outputs_exist(paths)
 
 
 def rings_to_labels(rings: Iterable[RingDefinition]) -> list[str]:
