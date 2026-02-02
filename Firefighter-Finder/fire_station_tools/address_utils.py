@@ -98,6 +98,24 @@ def reverse_geocode(lat: float, lon: float, geocode, cache: dict[tuple[float, fl
         return cache[key]
 
 
+def forward_geocode_address(query: str, geocode) -> str | None:
+    if not isinstance(query, str) or not query.strip():
+        return None
+
+    try:
+        location = geocode(query, exactly_one=True, addressdetails=True)
+        if not location or not getattr(location, "raw", None):
+            return None
+
+        address = location.raw.get("address") or {}
+        formatted = build_address(address)
+        return formatted or None
+    except (GeocoderUnavailable, GeocoderTimedOut, GeocoderServiceError):
+        return None
+    except Exception:
+        return None
+
+
 def ensure_lat_lon(df: pd.DataFrame, lat_column: str, lon_column: str) -> pd.DataFrame:
     if lat_column in df.columns and lon_column in df.columns:
         return df
