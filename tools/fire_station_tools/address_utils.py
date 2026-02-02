@@ -55,11 +55,23 @@ def address_is_complete(address: str) -> bool:
     if not re.search(r"[A-Za-z]", street_part):
         return False
 
-    before_state = address[: state_zip_match.start()].rstrip(", ")
+    before_state = address[: state_zip_match.start()].strip(", ")
     if not before_state:
         return False
-    city_candidate = before_state.split(",")[-1].strip()
-    if not re.search(r"[A-Za-z]", city_candidate):
+
+    city_candidate = before_state
+    if street_part and before_state.startswith(street_part):
+        remainder = before_state[len(street_part) :].strip(", ")
+        if remainder:
+            city_candidate = remainder
+    elif "," in before_state:
+        city_candidate = before_state.split(",")[-1].strip()
+
+    if (
+        not city_candidate
+        or city_candidate == street_part
+        or not re.search(r"[A-Za-z]", city_candidate)
+    ):
         return False
 
     return True
