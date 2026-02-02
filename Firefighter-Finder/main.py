@@ -10,6 +10,11 @@ import geopandas as gpd
 from firefighter_finder.config import DEFAULT_RINGS, RegionConfig, RingDefinition, build_output_paths
 from firefighter_finder.config import load_regions, save_regions
 from firefighter_finder.export import create_interactive_map, export_geojson, export_ring_csvs
+from firefighter_finder.geocode import (
+    build_forward_geocoder,
+    build_rate_limited_forward_geocoder,
+    geocode_place,
+)
 from firefighter_finder.osm import download_pbf, extract_fire_stations_lowmem
 from firefighter_finder.rings import add_distance_and_rings
 
@@ -91,6 +96,8 @@ def prompt_rings() -> tuple[RingDefinition, ...]:
 
 
 def prompt_new_region(regions: dict[str, RegionConfig]) -> RegionConfig:
+    geolocator = build_forward_geocoder("firefighter_finder")
+    geocode = build_rate_limited_forward_geocoder(geolocator)
     while True:
         name = prompt_input("Region name: ")
         if not name:
@@ -98,8 +105,17 @@ def prompt_new_region(regions: dict[str, RegionConfig]) -> RegionConfig:
             continue
         if name in regions and not prompt_yes_no("Region exists. Overwrite?", default=False):
             continue
-        center_lat = prompt_float("Center latitude (-90 to 90): ", -90, 90)
-        center_lon = prompt_float("Center longitude (-180 to 180): ", -180, 180)
+        while True:
+            location_query = prompt_input("Center location (City & State or ZIP): ")
+            if not location_query:
+                print("Please enter a city/state or ZIP code.")
+                continue
+            coords = geocode_place(location_query, geocode)
+            if coords is None:
+                print("Location not found. Please try a different search.")
+                continue
+            center_lat, center_lon = coords
+            break
         rings = prompt_rings()
         pbf_url = prompt_input("PBF URL (optional, press Enter to skip): ") or None
         return RegionConfig(
