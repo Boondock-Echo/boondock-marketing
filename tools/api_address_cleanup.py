@@ -11,6 +11,7 @@ import argparse
 import json
 import time
 from dataclasses import dataclass
+from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -30,6 +31,7 @@ from fire_station_tools.address_utils import (
 @dataclass
 class ApiResponse:
     address: str | None
+    results: list[dict[str, Any]] | None = None
     error: str | None = None
 
 
@@ -37,6 +39,16 @@ def fetch_json(url: str, headers: dict[str, str] | None = None, timeout: int = 1
     request = Request(url, headers=headers or {})
     with urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    radius_miles = 3958.7613
+    lat1_rad, lon1_rad = radians(lat1), radians(lon1)
+    lat2_rad, lon2_rad = radians(lat2), radians(lon2)
+    delta_lat = lat2_rad - lat1_rad
+    delta_lon = lon2_rad - lon1_rad
+    a = sin(delta_lat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(delta_lon / 2) ** 2
+    return 2 * radius_miles * asin(sqrt(a))
 
 
 def google_geocode(query: str, api_key: str, timeout: int = 10) -> ApiResponse:
@@ -62,7 +74,35 @@ def google_geocode(query: str, api_key: str, timeout: int = 10) -> ApiResponse:
     if not formatted:
         return ApiResponse(address=None, error="No formatted address returned")
 
-    return ApiResponse(address=formatted)
+    return ApiResponse(address=formatted, results=results)
+
+
+def find_matching_result(
+    results: list[dict[str, Any]],
+    lat: float | None,
+    lon: float | None,
+    max_distance_miles: float,
+) -> str | None:
+    if lat is None or lon is None:
+        return None
+
+    best_address = None
+    best_distance = None
+    for result in results:
+        geometry = result.get("geometry") or {}
+        location = geometry.get("location") or {}
+        res_lat = location.get("lat")
+        res_lon = location.get("lng")
+        if res_lat is None or res_lon is None:
+            continue
+        distance = haversine_miles(float(lat), float(lon), float(res_lat), float(res_lon))
+        if distance > max_distance_miles:
+            continue
+        if best_distance is None or distance < best_distance:
+            best_distance = distance
+            best_address = result.get("formatted_address")
+
+    return best_address
 
 
 def build_target_mask(
@@ -86,15 +126,22 @@ def build_target_mask(
 def process_dataframe(
     df: pd.DataFrame,
     address_column: str,
+    lat_column: str,
+    lon_column: str,
     api_key: str,
     min_delay: float,
     timeout: int,
     only_missing: bool,
     only_incomplete: bool,
+    max_distance_miles: float,
     missing_pattern: str = "No address tags",
 ) -> tuple[pd.DataFrame, int, int]:
     if address_column not in df.columns:
         raise SystemExit(f"Missing '{address_column}' column in input data.")
+    if lat_column not in df.columns or lon_column not in df.columns:
+        raise SystemExit(
+            f"Missing '{lat_column}'/'{lon_column}' columns in input data."
+        )
 
     target_mask = build_target_mask(
         df,
@@ -110,14 +157,29 @@ def process_dataframe(
     corrected_addresses: list[tuple[int, str]] = []
     for idx, row in df.loc[target_mask].iterrows():
         existing = str(row.get(address_column) or "").strip()
+        lat = row.get(lat_column)
+        lon = row.get(lon_column)
+        if pd.isna(lat) or pd.isna(lon):
+            corrected_addresses.append((idx, existing or "Missing lat/lon"))
+            continue
         query = build_search_query(row, existing)
         if not query:
             corrected_addresses.append((idx, existing))
             continue
 
         result = google_geocode(query, api_key=api_key, timeout=timeout)
-        if result.address:
-            corrected_addresses.append((idx, result.address))
+        if result.address and result.results:
+            matched = find_matching_result(
+                result.results,
+                float(lat),
+                float(lon),
+                max_distance_miles,
+            )
+            if matched:
+                corrected_addresses.append((idx, matched))
+            else:
+                fallback = existing or "No address found within distance threshold"
+                corrected_addresses.append((idx, fallback))
         else:
             fallback = existing or (result.error or "No address found")
             corrected_addresses.append((idx, fallback))
@@ -151,9 +213,12 @@ def parse_args() -> argparse.Namespace:
         help="Output directory when --input-dir is provided.",
     )
     parser.add_argument("--address-column", default="address")
+    parser.add_argument("--lat-column", default="lat")
+    parser.add_argument("--lon-column", default="lon")
     parser.add_argument("--api-key", default=None)
     parser.add_argument("--min-delay", type=float, default=0.2)
     parser.add_argument("--timeout", type=int, default=10)
+    parser.add_argument("--max-distance-miles", type=float, default=0.1)
     parser.add_argument("--in-place", action="store_true")
     parser.add_argument("--only-missing", action="store_true")
     parser.add_argument("--only-incomplete", action="store_true")
@@ -194,11 +259,14 @@ def main() -> None:
             df, target_count, corrected_count = process_dataframe(
                 df,
                 args.address_column,
+                args.lat_column,
+                args.lon_column,
                 api_key,
                 args.min_delay,
                 args.timeout,
                 args.only_missing,
                 args.only_incomplete,
+                args.max_distance_miles,
             )
             output_path = path if args.in_place else output_dir / path.name
             write_output(df, output_path, path)
@@ -223,11 +291,14 @@ def main() -> None:
         df, target_count, corrected_count = process_dataframe(
             df,
             args.address_column,
+            args.lat_column,
+            args.lon_column,
             api_key,
             args.min_delay,
             args.timeout,
             args.only_missing,
             args.only_incomplete,
+            args.max_distance_miles,
         )
         write_output(df, output_path, input_path)
 
