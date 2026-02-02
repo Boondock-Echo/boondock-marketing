@@ -152,6 +152,28 @@ def forward_geocode_address(query: str, geocode) -> str | None:
         return None
 
 
+def forward_geocode_location(
+    query: str, geocode
+) -> tuple[str, float, float] | None:
+    if not isinstance(query, str) or not query.strip():
+        return None
+
+    try:
+        location = geocode(query, exactly_one=True, addressdetails=True)
+        if not location or not getattr(location, "raw", None):
+            return None
+
+        address = location.raw.get("address") or {}
+        formatted = build_address(address)
+        if not formatted:
+            return None
+        return formatted, float(location.latitude), float(location.longitude)
+    except (GeocoderUnavailable, GeocoderTimedOut, GeocoderServiceError):
+        return None
+    except Exception:
+        return None
+
+
 def ensure_lat_lon(df: pd.DataFrame, lat_column: str, lon_column: str) -> pd.DataFrame:
     if lat_column in df.columns and lon_column in df.columns:
         return df
