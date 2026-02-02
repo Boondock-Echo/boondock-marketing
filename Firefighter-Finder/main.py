@@ -15,12 +15,14 @@ from firefighter_finder.geocode import (
     build_rate_limited_forward_geocoder,
     geocode_place,
 )
+from firefighter_finder.geofabrik import find_geofabrik_pbf
 from firefighter_finder.osm import download_pbf, extract_fire_stations_lowmem
 from firefighter_finder.rings import add_distance_and_rings
 
 BASE_DIR = Path(__file__).resolve().parent
 REGIONS_PATH = BASE_DIR / "regions.json"
 PBF_CACHE_DIR = BASE_DIR / "data" / "pbf"
+GEOFABRIK_INDEX_CACHE = BASE_DIR / "data" / "geofabrik_index.json"
 
 
 def slugify(value: str) -> str:
@@ -159,10 +161,21 @@ def ensure_pbf(region: RegionConfig) -> tuple[RegionConfig, Path]:
 
     url = region.pbf_url
     if not url:
-        url = prompt_input("Enter a PBF download URL (Geofabrik or custom): ")
-        if not url:
-            raise SystemExit("No PBF URL provided.")
-        region = replace(region, pbf_url=url)
+        print("Looking up Geofabrik PBF for this region...")
+        url = find_geofabrik_pbf(
+            region.center_lat,
+            region.center_lon,
+            cache_path=GEOFABRIK_INDEX_CACHE,
+        )
+        if url:
+            print(f"Found Geofabrik PBF: {url}")
+            region = replace(region, pbf_url=url)
+        else:
+            print("Geofabrik lookup failed.")
+            url = prompt_input("Enter a PBF download URL (Geofabrik or custom): ")
+            if not url:
+                raise SystemExit("No PBF URL provided.")
+            region = replace(region, pbf_url=url)
     print(f"Downloading PBF from {url} ...")
     download_pbf(url, pbf_path)
     return region, pbf_path
