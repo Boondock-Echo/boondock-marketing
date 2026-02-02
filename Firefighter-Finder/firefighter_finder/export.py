@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
 import folium
 import geopandas as gpd
+from folium.plugins import MarkerCluster
 
 from .config import RingDefinition
 
@@ -54,6 +55,10 @@ def create_interactive_map(
     rings: Iterable[RingDefinition],
     map_file: Path,
     center_label: str = "Center",
+    use_marker_cluster: bool = False,
+    map_ring_labels: Sequence[str] | None = None,
+    map_max_points: int | None = None,
+    map_sample_seed: int | None = None,
 ) -> None:
     m = folium.Map(location=[center_lat, center_lon], zoom_start=9, tiles="CartoDB positron")
     folium.Marker(
@@ -62,7 +67,17 @@ def create_interactive_map(
         icon=folium.Icon(color="black", icon="home"),
     ).add_to(m)
 
-    for _, row in stations.iterrows():
+    map_stations = stations
+    if map_ring_labels:
+        map_stations = map_stations[map_stations["ring"].isin(map_ring_labels)].copy()
+    if map_max_points and map_max_points > 0 and len(map_stations) > map_max_points:
+        map_stations = map_stations.sample(
+            n=map_max_points, random_state=map_sample_seed
+        )
+
+    marker_group = MarkerCluster().add_to(m) if use_marker_cluster else m
+
+    for _, row in map_stations.iterrows():
         if row.get("lat") is None or row.get("lon") is None:
             continue
         folium.CircleMarker(
@@ -79,7 +94,7 @@ def create_interactive_map(
                 f"Ring: {row.get('ring', 'n/a')}",
                 max_width=300,
             ),
-        ).add_to(m)
+        ).add_to(marker_group)
 
     legend_rows = "\n".join(
         f"&nbsp; {ring.label} &nbsp; <i style=\"background:{ring.color}\"></i><br>"
