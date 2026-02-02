@@ -92,24 +92,32 @@ def assign_rings_by_buffers(
 ) -> gpd.GeoDataFrame:
     buffers = build_ring_buffers(center_latlon, rings_miles, utm_crs=utm_crs, wgs84=wgs84)
     results = []
+    proj_to_utm = pyproj.Transformer.from_crs(wgs84, utm_crs, always_xy=True)
+    center_utm = proj_to_utm.transform(center_latlon[1], center_latlon[0])
+
+    def filter_by_bounds(
+        frame: gpd.GeoDataFrame, bounds: tuple[float, float, float, float]
+    ) -> gpd.GeoDataFrame:
+        if frame.empty:
+            return frame
+        bounds_index = list(frame.sindex.intersection(bounds))
+        return frame.iloc[bounds_index]
 
     for inner_miles, outer_miles, outer_buffer_wgs in buffers:
+        outer_candidates = filter_by_bounds(stations, outer_buffer_wgs.bounds)
+        outer_mask = outer_candidates.intersects(outer_buffer_wgs)
         if inner_miles > 0:
-            inner_buffer_utm = Point(
-                pyproj.Transformer.from_crs(wgs84, utm_crs, always_xy=True).transform(
-                    center_latlon[1], center_latlon[0]
-                )
-            ).buffer(inner_miles * 1609.34)
+            inner_buffer_utm = Point(center_utm).buffer(inner_miles * 1609.34)
             inner_buffer_wgs = (
                 gpd.GeoSeries([inner_buffer_utm], crs=utm_crs).to_crs(wgs84).iloc[0]
             )
-            ring_stations = gpd.overlay(
-                stations[stations.intersects(outer_buffer_wgs)],
-                stations[stations.intersects(inner_buffer_wgs)],
-                how="difference",
-            )
+            inner_candidates = filter_by_bounds(outer_candidates, inner_buffer_wgs.bounds)
+            inner_mask = inner_candidates.intersects(inner_buffer_wgs)
+            inner_ids = inner_candidates[inner_mask].index
+            ring_stations = outer_candidates[outer_mask]
+            ring_stations = ring_stations.loc[~ring_stations.index.isin(inner_ids)]
         else:
-            ring_stations = stations[stations.intersects(outer_buffer_wgs)]
+            ring_stations = outer_candidates[outer_mask]
 
         ring_stations = ring_stations.copy()
         ring_stations["ring_label"] = f"{inner_miles}-{outer_miles} miles"
