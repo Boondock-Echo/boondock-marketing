@@ -10,6 +10,7 @@ rings_csv/
 
 # Caches
 cache/
+data/
 
 # Python bytecode
 __pycache__/

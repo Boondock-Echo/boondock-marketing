@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 GEOFABRIK_INDEX_URL = "https://download.geofabrik.de/index-v1.json"
+DEFAULT_GEOFABRIK_CACHE = (
+    Path(__file__).resolve().parents[1] / "data" / "geofabrik_index.json"
+)
 
 
 def _iter_coords(coordinates: Iterable) -> Iterable[tuple[float, float]]:
@@ -67,6 +70,8 @@ def find_geofabrik_pbf(
     cache_path: Optional[Path] = None,
     index_url: str = GEOFABRIK_INDEX_URL,
 ) -> Optional[str]:
+    if cache_path is None:
+        cache_path = DEFAULT_GEOFABRIK_CACHE
     try:
         data = load_geofabrik_index(cache_path=cache_path, index_url=index_url)
     except Exception:

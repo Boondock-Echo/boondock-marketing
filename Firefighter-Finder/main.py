@@ -28,7 +28,6 @@ from firefighter_finder.rings import add_distance_and_rings
 BASE_DIR = Path(__file__).resolve().parent
 REGIONS_PATH = BASE_DIR / "regions.json"
 PBF_CACHE_DIR = BASE_DIR / "data" / "pbf"
-GEOFABRIK_INDEX_CACHE = BASE_DIR / "data" / "geofabrik_index.json"
 
 
 def slugify(value: str) -> str:
@@ -168,11 +167,7 @@ def ensure_pbf(region: RegionConfig) -> tuple[RegionConfig, Path]:
     url = region.pbf_url
     if not url:
         print("Looking up Geofabrik PBF for this region...")
-        url = find_geofabrik_pbf(
-            region.center_lat,
-            region.center_lon,
-            cache_path=GEOFABRIK_INDEX_CACHE,
-        )
+        url = find_geofabrik_pbf(region.center_lat, region.center_lon)
         if url:
             print(f"Found Geofabrik PBF: {url}")
             region = replace(region, pbf_url=url)
