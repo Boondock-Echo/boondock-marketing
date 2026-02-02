@@ -1,5 +1,5 @@
-# boondock-marketing
-Tools for marketing including address discovery and CRM
+# tools
+Utility tooling for fire station data extraction, cleanup, and exports.
 
 ## Fire station tooling package layout
 
