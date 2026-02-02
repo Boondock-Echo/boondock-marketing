@@ -22,6 +22,10 @@ def build_reverse_geocoder(user_agent: str, timeout: int = 10) -> Nominatim:
     return Nominatim(user_agent=user_agent, timeout=timeout)
 
 
+def build_forward_geocoder(user_agent: str, timeout: int = 10) -> Nominatim:
+    return Nominatim(user_agent=user_agent, timeout=timeout)
+
+
 def build_rate_limited_reverse_geocoder(
     geolocator: Nominatim,
     min_delay_seconds: float = 1.1,
@@ -37,6 +41,38 @@ def build_rate_limited_reverse_geocoder(
         swallow_exceptions=swallow_exceptions,
         return_value_on_exception=None,
     )
+
+
+def build_rate_limited_forward_geocoder(
+    geolocator: Nominatim,
+    min_delay_seconds: float = 1.1,
+    max_retries: int = 2,
+    error_wait_seconds: float = 2.0,
+    swallow_exceptions: bool = True,
+) -> Callable:
+    return RateLimiter(
+        geolocator.geocode,
+        min_delay_seconds=min_delay_seconds,
+        max_retries=max_retries,
+        error_wait_seconds=error_wait_seconds,
+        swallow_exceptions=swallow_exceptions,
+        return_value_on_exception=None,
+    )
+
+
+def geocode_place(query: str, geocode: Callable) -> tuple[float, float] | None:
+    if not query:
+        return None
+
+    try:
+        location = geocode(query, exactly_one=True, addressdetails=True)
+        if not location or not getattr(location, "raw", None):
+            return None
+        return (location.latitude, location.longitude)
+    except (GeocoderUnavailable, GeocoderTimedOut, GeocoderServiceError):
+        return None
+    except Exception:
+        return None
 
 
 def reverse_geocode_address(

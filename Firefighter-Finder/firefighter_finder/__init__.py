@@ -13,8 +13,11 @@ from .config import (
 )
 from .export import create_interactive_map, export_geojson, export_ring_csvs
 from .geocode import (
+    build_forward_geocoder,
+    build_rate_limited_forward_geocoder,
     build_rate_limited_reverse_geocoder,
     build_reverse_geocoder,
+    geocode_place,
     require_network,
     reverse_geocode_address,
 )
@@ -35,6 +38,8 @@ __all__ = [
     "add_distance_and_rings",
     "assign_ring",
     "build_output_paths",
+    "build_forward_geocoder",
+    "build_rate_limited_forward_geocoder",
     "build_rate_limited_reverse_geocoder",
     "build_reverse_geocoder",
     "create_interactive_map",
@@ -42,6 +47,7 @@ __all__ = [
     "export_geojson",
     "export_ring_csvs",
     "extract_fire_stations_lowmem",
+    "geocode_place",
     "get_region",
     "haversine_distance_miles",
     "load_regions",
