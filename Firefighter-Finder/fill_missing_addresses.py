@@ -1,87 +1,115 @@
 #!/usr/bin/env python3
 """
-Fill missing addresses in fire_stations_with_rings.geojson using Nominatim reverse geocoding
-Only processes rows with "No address tags"
+Fill missing addresses in GeoJSON exports using Nominatim reverse geocoding.
+Only processes rows with "No address tags".
 """
 
+import argparse
 import os
-import time
 from pathlib import Path
 
-import geopandas as gpd
 import pandas as pd
 from geopy.extra.rate_limiter import RateLimiter
 from geopy.geocoders import Nominatim
 from tqdm import tqdm
 
-# === CONFIG ===
+from firefighter_finder.address_utils import (
+    DEFAULT_USER_AGENT,
+    ensure_lat_lon,
+    find_output_root,
+    load_input,
+    require_network,
+    reverse_geocode,
+    write_output,
+)
+
 REGION = os.environ.get("REGION", "default")
-OUTPUT_ROOT = Path("outputs") / REGION
-OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 
-INPUT_FILE = OUTPUT_ROOT / "fire_stations_with_rings.geojson"      # or your CSV/GeoJSON
-OUTPUT_FILE = OUTPUT_ROOT / "fire_stations_with_filled_addresses.geojson"
-USER_AGENT = "FireStationFinder-Mark-LaHabra (your.email@example.com)"  # ← Change to your real email!
 
-# === MAIN ===
-print("Loading data...")
-df = gpd.read_file(INPUT_FILE)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Fill missing addresses in fire station GeoJSON exports."
+    )
+    parser.add_argument("--region", default=REGION, help="Region name for outputs/REGION.")
+    parser.add_argument("--project-dir", type=Path, default=None)
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=None,
+        help="Input GeoJSON file (defaults to outputs/REGION/fire_stations_with_rings.geojson).",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output GeoJSON file (defaults to outputs/REGION/fire_stations_with_filled_addresses.geojson).",
+    )
+    parser.add_argument("--address-column", default="address")
+    parser.add_argument("--lat-column", default="lat")
+    parser.add_argument("--lon-column", default="lon")
+    parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
+    parser.add_argument("--skip-network-check", action="store_true")
+    parser.add_argument("--in-place", action="store_true")
+    return parser.parse_args()
 
-# Find missing addresses
-missing = df[df['address'].str.contains("No address tags", na=False)].copy()
-print(f"Found {len(missing)} stations with missing addresses.")
 
-if len(missing) == 0:
-    print("All addresses already present — nothing to do.")
-    exit()
+def main() -> None:
+    args = parse_args()
+    output_root = find_output_root(args.region, args.project_dir)
+    input_path = args.input or (output_root / "fire_stations_with_rings.geojson")
+    output_path = input_path if args.in_place else args.output or (
+        output_root / "fire_stations_with_filled_addresses.geojson"
+    )
 
-# Set up Nominatim with rate limiter (1 request per 1.2 seconds → safe)
-geolocator = Nominatim(user_agent=USER_AGENT)
-geocode = RateLimiter(geolocator.reverse, min_delay_seconds=1.2)
+    if not args.skip_network_check:
+        require_network()
 
-# Function to get address from lat/lon
-def get_address(row):
-    try:
-        location = geocode((row['lat'], row['lon']))
-        if location and location.raw.get('address'):
-            addr = location.raw['address']
-            parts = []
-            if 'house_number' in addr:
-                parts.append(addr['house_number'])
-            if 'road' in addr:
-                parts.append(addr['road'])
-            if 'city' in addr or 'town' in addr:
-                parts.append(addr.get('city') or addr.get('town'))
-            if 'postcode' in addr:
-                parts.append(addr['postcode'])
-            
-            full_addr = ", ".join(filter(None, parts))
-            return full_addr if full_addr else "Address found but incomplete"
-        return "No address found via reverse geocoding"
-    except Exception as e:
-        print(f"Error for {row['name']}: {e}")
-        return "Error during lookup"
+    if not input_path.exists():
+        raise SystemExit(f"Input file not found: {input_path}")
 
-# Apply reverse geocoding with progress bar
-print("Performing reverse geocoding (this may take a few minutes)...")
-tqdm.pandas(desc="Reverse geocoding")
-missing['new_address'] = missing.progress_apply(get_address, axis=1)
+    geolocator = Nominatim(user_agent=args.user_agent, timeout=10)
+    geocode = RateLimiter(
+        geolocator.reverse,
+        min_delay_seconds=1.1,
+        max_retries=2,
+        error_wait_seconds=2.0,
+        swallow_exceptions=True,
+        return_value_on_exception=None,
+    )
 
-# Update original dataframe
-df.loc[missing.index, 'address'] = missing['new_address']
+    print("Loading data...")
+    df = load_input(input_path)
+    df = ensure_lat_lon(df, args.lat_column, args.lon_column)
 
-# Optional: keep lat/lon columns if not already present
-if 'lat' not in df.columns:
-    df['lat'] = df.geometry.y
-if 'lon' not in df.columns:
-    df['lon'] = df.geometry.x
+    cache: dict[tuple[float, float], str] = {}
+    missing_mask = df[args.address_column].astype(str).str.contains("No address tags", na=False)
+    missing_count = int(missing_mask.sum())
+    print(f"Found {missing_count} stations with missing addresses.")
 
-# Save updated file
-df.to_file(OUTPUT_FILE, driver="GeoJSON")
-print(f"\nUpdated file saved to: {OUTPUT_FILE}")
+    if missing_count == 0:
+        print("All addresses already present — nothing to do.")
+        return
 
-# Summary
-updated_count = len(missing[missing['new_address'].str.contains("No address") == False])
-print(f"\nSuccessfully filled {updated_count} out of {len(missing)} missing addresses.")
-print("Sample of updated addresses:")
-print(missing[['name', 'new_address', 'distance_mi', 'ring']].head(8))
+    print("Performing reverse geocoding (this may take a few minutes)...")
+    corrected_addresses = []
+    for _, row in tqdm(df.loc[missing_mask].iterrows(), total=missing_count, desc="Reverse geocoding"):
+        lat = row.get(args.lat_column)
+        lon = row.get(args.lon_column)
+        if pd.isna(lat) or pd.isna(lon):
+            corrected_addresses.append("Missing lat/lon")
+            continue
+        corrected_addresses.append(reverse_geocode(lat, lon, geocode, cache))
+
+    df.loc[missing_mask, args.address_column] = corrected_addresses
+
+    write_output(df, output_path, input_path)
+    filled_count = int(
+        (~df.loc[missing_mask, args.address_column].astype(str).str.contains("No address tags", na=False)).sum()
+    )
+
+    print(f"\nUpdated file saved to: {output_path}")
+    print(f"\nSuccessfully filled {filled_count} out of {missing_count} missing addresses.")
+
+
+if __name__ == "__main__":
+    main()
