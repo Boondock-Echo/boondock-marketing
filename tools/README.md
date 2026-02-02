@@ -1,4 +1,4 @@
-# fire-station-tools
+# tools
 Utility tooling for fire station data extraction, cleanup, and exports.
 
 ## Fire station tooling package layout
