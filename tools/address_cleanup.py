@@ -76,7 +76,8 @@ def prompt_for_address(
             return suggestion
 
     if existing and not existing.lower().startswith("no address"):
-        if prompt_yes_no("Keep the current address?", default=False):
+        default_keep = suggestion is None
+        if prompt_yes_no("Keep the current address?", default=default_keep):
             return existing
 
     while True:
@@ -136,6 +137,19 @@ def build_search_query(row: pd.Series, existing: str) -> str | None:
     return ", ".join(parts)
 
 
+def suggestion_is_failure(suggestion: str | None) -> bool:
+    if not suggestion:
+        return True
+    return suggestion.lower().startswith(
+        (
+            "no address found",
+            "address found but incomplete",
+            "lookup failed",
+            "error during lookup",
+        )
+    )
+
+
 def process_dataframe(
     df: pd.DataFrame,
     geocode,
@@ -188,14 +202,7 @@ def process_dataframe(
                 suggestion = f"Lookup failed: {type(exc).__name__}"
 
         if enable_forward_search and forward_geocode:
-            if not suggestion or suggestion.lower().startswith(
-                (
-                    "no address found",
-                    "address found but incomplete",
-                    "lookup failed",
-                    "error during lookup",
-                )
-            ):
+            if suggestion_is_failure(suggestion):
                 query = build_search_query(row, existing)
                 forward_suggestion = forward_geocode_address(query, forward_geocode)
                 if forward_suggestion:
@@ -207,6 +214,10 @@ def process_dataframe(
                 suggestion_source = "reverse geocode"
         elif suggestion:
             suggestion_source = "reverse geocode"
+
+        if suggestion_is_failure(suggestion):
+            suggestion = None
+            suggestion_source = None
 
         if interactive:
             name = row.get("name")
