@@ -105,6 +105,31 @@ def find_matching_result(
     return best_address
 
 
+def find_closest_result(
+    results: list[dict[str, Any]],
+    lat: float | None,
+    lon: float | None,
+) -> str | None:
+    if lat is None or lon is None:
+        return None
+
+    best_address = None
+    best_distance = None
+    for result in results:
+        geometry = result.get("geometry") or {}
+        location = geometry.get("location") or {}
+        res_lat = location.get("lat")
+        res_lon = location.get("lng")
+        if res_lat is None or res_lon is None:
+            continue
+        distance = haversine_miles(float(lat), float(lon), float(res_lat), float(res_lon))
+        if best_distance is None or distance < best_distance:
+            best_distance = distance
+            best_address = result.get("formatted_address")
+
+    return best_address
+
+
 def build_target_mask(
     df: pd.DataFrame,
     address_column: str,
@@ -134,6 +159,7 @@ def process_dataframe(
     only_missing: bool,
     only_incomplete: bool,
     max_distance_miles: float,
+    allow_distance_fallback: bool,
     missing_pattern: str = "No address tags",
 ) -> tuple[pd.DataFrame, int, int]:
     if address_column not in df.columns:
@@ -179,6 +205,10 @@ def process_dataframe(
                 corrected_addresses.append((idx, matched))
             else:
                 fallback = existing or "No address found within distance threshold"
+                if allow_distance_fallback:
+                    closest = find_closest_result(result.results, float(lat), float(lon))
+                    if closest:
+                        fallback = closest
                 corrected_addresses.append((idx, fallback))
         else:
             fallback = existing or (result.error or "No address found")
@@ -219,6 +249,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-delay", type=float, default=0.2)
     parser.add_argument("--timeout", type=int, default=10)
     parser.add_argument("--max-distance-miles", type=float, default=0.1)
+    parser.add_argument(
+        "--allow-distance-fallback",
+        action="store_true",
+        help="Use the closest geocode result even if it exceeds --max-distance-miles.",
+    )
     parser.add_argument("--in-place", action="store_true")
     parser.add_argument("--only-missing", action="store_true")
     parser.add_argument("--only-incomplete", action="store_true")
@@ -267,6 +302,7 @@ def main() -> None:
                 args.only_missing,
                 args.only_incomplete,
                 args.max_distance_miles,
+                args.allow_distance_fallback,
             )
             output_path = path if args.in_place else output_dir / path.name
             write_output(df, output_path, path)
@@ -299,6 +335,7 @@ def main() -> None:
             args.only_missing,
             args.only_incomplete,
             args.max_distance_miles,
+            args.allow_distance_fallback,
         )
         write_output(df, output_path, input_path)
 
