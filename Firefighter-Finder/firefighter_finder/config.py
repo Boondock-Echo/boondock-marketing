@@ -130,12 +130,63 @@ def rings_to_labels(rings: Iterable[RingDefinition]) -> list[str]:
     return [ring.label for ring in rings]
 
 
+def _require_mapping(value: object, *, context: str) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError(f"{context} must be a JSON object.")
+    return value
+
+
+def _require_sequence(value: object, *, context: str) -> list:
+    if not isinstance(value, list):
+        raise ValueError(f"{context} must be a JSON array.")
+    return value
+
+
+def _require_number(value: object, *, context: str) -> None:
+    try:
+        float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{context} must be a number.") from exc
+
+
+def validate_regions_payload(payload: object) -> None:
+    data = _require_mapping(payload, context="regions.json root")
+    for region_name, region_data in data.items():
+        if not isinstance(region_name, str):
+            raise ValueError("Region names in regions.json must be strings.")
+        region = _require_mapping(region_data, context=f"Region '{region_name}'")
+        for key in ("center_lat", "center_lon", "rings"):
+            if key not in region:
+                raise ValueError(f"Region '{region_name}' missing required key '{key}'.")
+        _require_number(region["center_lat"], context=f"Region '{region_name}' center_lat")
+        _require_number(region["center_lon"], context=f"Region '{region_name}' center_lon")
+        rings = _require_sequence(region["rings"], context=f"Region '{region_name}' rings")
+        for index, ring_data in enumerate(rings):
+            ring = _require_mapping(
+                ring_data, context=f"Region '{region_name}' ring[{index}]"
+            )
+            for key in ("min_miles", "max_miles", "label", "color"):
+                if key not in ring:
+                    raise ValueError(
+                        f"Region '{region_name}' ring[{index}] missing required key '{key}'."
+                    )
+            _require_number(
+                ring["min_miles"],
+                context=f"Region '{region_name}' ring[{index}] min_miles",
+            )
+            _require_number(
+                ring["max_miles"],
+                context=f"Region '{region_name}' ring[{index}] max_miles",
+            )
+
+
 def load_regions(path: Path | str = "regions.json") -> dict[str, RegionConfig]:
     config_path = Path(path)
     if not config_path.exists():
         return {}
     with config_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
+    validate_regions_payload(data)
     regions: dict[str, RegionConfig] = {}
     for name, config in data.items():
         regions[name] = region_config_from_dict(name, config)
