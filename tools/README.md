@@ -84,6 +84,19 @@ python api_address_cleanup.py \
   --api-key "YOUR_API_KEY"
 ```
 
+If you still see `No address tags` after running the API cleanup, consider
+relaxing the distance filter or allowing the closest match outside the distance
+threshold:
+
+```bash
+python api_address_cleanup.py \
+  --input outputs/<region>/rings_csv_with_addresses \
+  --output outputs/<region>/rings_csv_with_complete_addresses \
+  --api-key "YOUR_API_KEY" \
+  --max-distance-miles 1.0 \
+  --allow-distance-fallback
+```
+
 To process every CSV in `outputs/<region>/rings_csv_with_addresses`, point the script at the
 directory:
 
