@@ -18,6 +18,7 @@ Scripts in the repo are thin entry points that call into this package.
 - `find_fire_stations_lowmem.py`: stream fire station extraction from a `.osm.pbf`
 - `assign_rings_map_and_csv_export.py`: assign distance rings and export GeoJSON/CSV/HTML
 - `fill_missing_addresses_csv.py`: fill missing addresses in exported CSVs
+- `fill_missing_addresses.py`: fill missing addresses in GeoJSON exports
 - `ensure_complete_addresses.py`: validate/repair mailing addresses in GeoJSON or CSV exports
 
 ## Outputs and caches
@@ -41,14 +42,32 @@ CSV reverse-geocoding helper to fill them with mailing addresses.
 
 ```bash
 python fill_missing_addresses_csv.py \
-  --input-dir outputs/<region>/rings_csv \
-  --output-dir outputs/<region>/rings_csv_with_addresses \
+  --region <region> \
   --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
 ```
 
-By default, the script writes updated CSVs to
-`outputs/<region>/rings_csv_with_addresses` so you can review the results. Use
-`--in-place` to overwrite the originals once you are satisfied.
+By default, the script looks for `outputs/<region>/rings_csv` (walking up from
+the current working directory), writes updated CSVs to
+`outputs/<region>/rings_csv_with_addresses`, and lets you override both with
+`--input-dir`/`--output-dir`. Use `--project-dir` to anchor the search for
+`outputs/<region>/` if you're running from a nested directory. Use `--in-place`
+to overwrite the originals once you are satisfied.
+
+## Firefighter Finder: filling missing GeoJSON addresses
+
+If the GeoJSON export contains `No address tags`, you can fill them with the
+GeoJSON helper:
+
+```bash
+python fill_missing_addresses.py \
+  --region <region> \
+  --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
+```
+
+Defaults are `outputs/<region>/fire_stations_with_rings.geojson` for input and
+`outputs/<region>/fire_stations_with_filled_addresses.geojson` for output. Use
+`--input`, `--output`, or `--in-place` to override, and `--project-dir` if you
+need to point at a specific project root.
 
 ## Ensure complete mailing addresses
 
