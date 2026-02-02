@@ -1,4 +1,4 @@
-from firefighter_finder.geocode import (
+from fire_station_tools.geocode import (
     ReverseGeocodeCache,
     reverse_geocode_address,
     reverse_geocode_address_cached,

@@ -4,7 +4,7 @@ Low-memory extraction of fire stations (amenity=fire_station) from OSM .osm.pbf 
 Uses pyosmium for streaming parsing → very low RAM usage (~1-4 GB peak for large files)
 
 Usage:
-    python find_fire_stations_lowmem.py socal-260118.osm.pbf
+    python extract_fire_stations.py socal-260118.osm.pbf
 
 Output: outputs/<region>/fire_stations.geojson (GeoJSON FeatureCollection)
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python find_fire_stations_lowmem.py <path_to_california-latest.osm.pbf>")
+        print("Usage: python extract_fire_stations.py <path_to_california-latest.osm.pbf>")
         sys.exit(1)
 
     pbf_path = sys.argv[1]
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     print("Progress will update every 50 stations found.\n")
 
     try:
-        from firefighter_finder.osm import extract_fire_stations_lowmem
+        from fire_station_tools.osm import extract_fire_stations_lowmem
 
         extract_fire_stations_lowmem(Path(pbf_path), output_file)
     except Exception as e:

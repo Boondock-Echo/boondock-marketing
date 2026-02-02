@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from ensure_complete_addresses import (
+from address_cleanup import (
     address_is_complete,
     ensure_lat_lon,
     process_dataframe,

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from firefighter_finder.config import load_regions
+from fire_station_tools.config import load_regions
 
 
 @pytest.mark.parametrize(

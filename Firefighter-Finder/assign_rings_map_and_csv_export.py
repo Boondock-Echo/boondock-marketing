@@ -7,9 +7,9 @@ Output: outputs/<region>/fire_stations_with_rings.geojson + per-ring CSVs + inte
 
 import geopandas as gpd
 
-from firefighter_finder.config import build_output_paths, get_region, load_regions
-from firefighter_finder.export import create_interactive_map, export_geojson, export_ring_csvs
-from firefighter_finder.rings import add_distance_and_rings
+from fire_station_tools.config import build_output_paths, get_region, load_regions
+from fire_station_tools.export import create_interactive_map, export_geojson, export_ring_csvs
+from fire_station_tools.rings import add_distance_and_rings
 
 
 def main() -> None:
