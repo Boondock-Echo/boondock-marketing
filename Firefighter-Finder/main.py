@@ -7,23 +7,23 @@ from pathlib import Path
 
 import geopandas as gpd
 
-from firefighter_finder.config import (
+from fire_station_tools.config import (
     DEFAULT_RINGS,
     RegionConfig,
     RingDefinition,
     build_output_paths,
     expected_outputs_exist,
 )
-from firefighter_finder.config import load_regions, save_regions
-from firefighter_finder.export import create_interactive_map, export_geojson, export_ring_csvs
-from firefighter_finder.geocode import (
+from fire_station_tools.config import load_regions, save_regions
+from fire_station_tools.export import create_interactive_map, export_geojson, export_ring_csvs
+from fire_station_tools.geocode import (
     build_forward_geocoder,
     build_rate_limited_forward_geocoder,
     geocode_place,
 )
-from firefighter_finder.geofabrik import find_geofabrik_pbf
-from firefighter_finder.osm import download_pbf, extract_fire_stations_lowmem
-from firefighter_finder.rings import add_distance_and_rings
+from fire_station_tools.geofabrik import find_geofabrik_pbf
+from fire_station_tools.osm import download_pbf, extract_fire_stations_lowmem
+from fire_station_tools.rings import add_distance_and_rings
 
 BASE_DIR = Path(__file__).resolve().parent
 REGIONS_PATH = BASE_DIR / "regions.json"
@@ -103,7 +103,7 @@ def prompt_rings() -> tuple[RingDefinition, ...]:
 
 
 def prompt_new_region(regions: dict[str, RegionConfig]) -> RegionConfig:
-    geolocator = build_forward_geocoder("firefighter_finder")
+    geolocator = build_forward_geocoder("fire_station_tools")
     geocode = build_rate_limited_forward_geocoder(geolocator)
     while True:
         name = prompt_input("Region name: ")

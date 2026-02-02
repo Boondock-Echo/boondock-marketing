@@ -1,9 +1,9 @@
 # boondock-marketing
 Tools for marketing including address discovery and CRM
 
-## Firefighter Finder package layout
+## Fire station tooling package layout
 
-Reusable Firefighter Finder logic now lives in the `firefighter_finder/` package:
+Reusable Fire Station tooling logic now lives in the `fire_station_tools/` package:
 
 - `config.py`: region centers, ring definitions, and output paths
 - `osm.py`: PBF download/loading helpers plus fire station extraction
@@ -15,11 +15,9 @@ Scripts in the repo are thin entry points that call into this package.
 
 ## Primary entry points
 
-- `find_fire_stations_lowmem.py`: stream fire station extraction from a `.osm.pbf`
+- `extract_fire_stations.py`: stream fire station extraction from a `.osm.pbf`
 - `assign_rings_map_and_csv_export.py`: assign distance rings and export GeoJSON/CSV/HTML
-- `fill_missing_addresses_csv.py`: fill missing addresses in exported CSVs
-- `fill_missing_addresses.py`: fill missing addresses in GeoJSON exports
-- `ensure_complete_addresses.py`: validate/repair mailing addresses in GeoJSON or CSV exports
+- `address_cleanup.py`: interactively repair missing or incomplete addresses in GeoJSON/CSV exports
 
 ## Outputs and caches
 
@@ -35,47 +33,28 @@ write:
 Intermediate or third-party caches (for example, Overpass/OSM downloads) should
 go in `cache/` and are ignored by git.
 
-## Firefighter Finder: filling missing CSV addresses
+## Fire station tooling: address cleanup
 
-If the `rings_csv` exports contain `No address tags` entries, you can use the
-CSV reverse-geocoding helper to fill them with mailing addresses.
+If the `rings_csv` exports contain `No address tags` entries or incomplete mailing
+addresses, use the interactive address cleanup helper to fill or repair them.
 
 ```bash
-python fill_missing_addresses_csv.py \
-  --region <region> \
+python address_cleanup.py \
+  --input-dir outputs/<region>/rings_csv \
+  --output-dir outputs/<region>/rings_csv_with_complete_addresses \
   --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
 ```
 
-By default, the script looks for `outputs/<region>/rings_csv` (walking up from
-the current working directory), writes updated CSVs to
-`outputs/<region>/rings_csv_with_addresses`, and lets you override both with
-`--input-dir`/`--output-dir`. Use `--project-dir` to anchor the search for
-`outputs/<region>/` if you're running from a nested directory. Use `--in-place`
-to overwrite the originals once you are satisfied.
+Use `--input-dir` to process a folder and `--in-place` to overwrite files after
+review. Add `--non-interactive` to skip prompts and rely on reverse geocoding.
 
-## Firefighter Finder: filling missing GeoJSON addresses
-
-If the GeoJSON export contains `No address tags`, you can fill them with the
-GeoJSON helper:
-
-```bash
-python fill_missing_addresses.py \
-  --region <region> \
-  --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
-```
-
-Defaults are `outputs/<region>/fire_stations_with_rings.geojson` for input and
-`outputs/<region>/fire_stations_with_filled_addresses.geojson` for output. Use
-`--input`, `--output`, or `--in-place` to override, and `--project-dir` if you
-need to point at a specific project root.
-
-## Ensure complete mailing addresses
+## Examples
 
 To validate that every address has a house number, street, city, state, and ZIP
-code (and repair incomplete rows using reverse geocoding), use:
+code (and repair incomplete rows), use:
 
 ```bash
-python ensure_complete_addresses.py \
+python address_cleanup.py \
   --input outputs/<region>/fire_stations_with_rings.geojson \
   --output outputs/<region>/fire_stations_with_complete_addresses.geojson \
   --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
@@ -88,9 +67,9 @@ To process every CSV in `outputs/<region>/rings_csv_with_addresses`, point the s
 directory:
 
 ```bash
-python ensure_complete_addresses.py \
+python address_cleanup.py \
   --input-dir outputs/<region>/rings_csv_with_addresses \
-  --output outputs/<region>/rings_csv_with_complete_addresses \
+  --output-dir outputs/<region>/rings_csv_with_complete_addresses \
   --user-agent "FireStationFinder-Mark-LaHabra (your.email@example.com)"
 ```
 

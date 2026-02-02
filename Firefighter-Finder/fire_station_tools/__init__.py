@@ -1,4 +1,4 @@
-"""Firefighter Finder package for extracting, enriching, and exporting station data."""
+"""Fire station tooling package for extracting, enriching, and exporting station data."""
 
 from .config import (
     DEFAULT_CENTER,

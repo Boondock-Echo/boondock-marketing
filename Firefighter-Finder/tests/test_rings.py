@@ -1,5 +1,5 @@
-from firefighter_finder.config import DEFAULT_RINGS
-from firefighter_finder.rings import assign_ring
+from fire_station_tools.config import DEFAULT_RINGS
+from fire_station_tools.rings import assign_ring
 
 
 def test_assign_ring_boundary_distances():

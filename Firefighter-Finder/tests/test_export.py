@@ -1,8 +1,8 @@
 import pandas as pd
 import geopandas as gpd
 
-from firefighter_finder.config import RingDefinition
-from firefighter_finder.export import export_ring_csvs
+from fire_station_tools.config import RingDefinition
+from fire_station_tools.export import export_ring_csvs
 
 
 def test_export_ring_csvs_missing_ring_column(tmp_path, capsys):
