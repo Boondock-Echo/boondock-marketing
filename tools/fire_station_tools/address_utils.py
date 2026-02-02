@@ -78,6 +78,27 @@ def build_address(address: dict) -> str:
     return formatted
 
 
+def build_search_query(row: pd.Series, existing: str) -> str | None:
+    parts: list[str] = []
+    name = str(row.get("name") or "").strip()
+    if name:
+        parts.append(name)
+
+    if existing and not existing.lower().startswith("no address"):
+        parts.append(existing)
+
+    for field in ("city", "town", "state", "postcode", "zip", "zip_code", "county"):
+        value = row.get(field)
+        if pd.notna(value):
+            text = str(value).strip()
+            if text and text not in parts:
+                parts.append(text)
+
+    if not parts:
+        return None
+    return ", ".join(parts)
+
+
 def reverse_geocode(lat: float, lon: float, geocode, cache: dict[tuple[float, float], str]) -> str:
     key = (float(lat), float(lon))
     if key in cache:

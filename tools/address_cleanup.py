@@ -22,6 +22,7 @@ from geopy.geocoders import Nominatim
 from fire_station_tools.address_utils import (
     DEFAULT_USER_AGENT,
     address_is_complete,
+    build_search_query,
     forward_geocode_address,
     ensure_lat_lon,
     load_input,
@@ -114,27 +115,6 @@ def build_target_mask(
     else:
         target_mask = missing_mask | incomplete_mask
     return target_mask, missing_mask, incomplete_mask
-
-
-def build_search_query(row: pd.Series, existing: str) -> str | None:
-    parts: list[str] = []
-    name = str(row.get("name") or "").strip()
-    if name:
-        parts.append(name)
-
-    if existing and not existing.lower().startswith("no address"):
-        parts.append(existing)
-
-    for field in ("city", "town", "state", "postcode", "zip", "zip_code", "county"):
-        value = row.get(field)
-        if pd.notna(value):
-            text = str(value).strip()
-            if text and text not in parts:
-                parts.append(text)
-
-    if not parts:
-        return None
-    return ", ".join(parts)
 
 
 def suggestion_is_failure(suggestion: str | None) -> bool:
