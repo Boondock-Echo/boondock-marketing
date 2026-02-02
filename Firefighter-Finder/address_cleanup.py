@@ -11,6 +11,7 @@ By default, the script:
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -215,6 +216,8 @@ def main() -> None:
     args = parse_args()
     input_path = args.input
     input_dir = args.input_dir
+
+    logging.getLogger("geopy").setLevel(logging.ERROR)
 
     if not input_path and not input_dir:
         raise SystemExit("Provide --input or --input-dir.")
