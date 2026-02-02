@@ -16,5 +16,7 @@ socal-260118.osm.pbf
 .venv
 venv
 pip-selfcheck.json
+downloads/
+outputs/
 
 # End of https://www.toptal.com/developers/gitignore/api/venv
