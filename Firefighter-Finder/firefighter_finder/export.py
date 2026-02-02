@@ -22,12 +22,26 @@ def export_ring_csvs(
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     columns = fields or ["name", "address", "distance_mi", "lat", "lon", "osm_id", "ring"]
+    if "ring" not in stations.columns:
+        print(
+            "  → Missing required column 'ring' for CSV export; "
+            "unable to filter stations into rings."
+        )
+        return
+    missing_columns = [column for column in columns if column not in stations.columns]
+    if missing_columns:
+        print(
+            "  → Warning: missing columns for CSV export; filling with blanks: "
+            f"{', '.join(missing_columns)}"
+        )
 
     for ring in rings:
-        ring_df = stations[stations["ring"] == ring.label]
+        ring_df = stations[stations["ring"] == ring.label].copy()
         if ring_df.empty:
             print(f"  → No stations in {ring.label}")
             continue
+        for column in missing_columns:
+            ring_df[column] = None
         csv_path = output_dir / f"fire_stations_{ring.label.replace(' ', '_')}.csv"
         ring_df[columns].to_csv(csv_path, index=False)
         print(f"  → {len(ring_df)} stations → {csv_path}")
