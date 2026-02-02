@@ -21,6 +21,7 @@ have been removed to keep the tooling focused on the supported entry points.
 - `extract_fire_stations.py`: stream fire station extraction from a `.osm.pbf`
 - `assign_rings_map_and_csv_export.py`: assign distance rings and export GeoJSON/CSV/HTML
 - `address_cleanup.py`: interactively repair missing or incomplete addresses in GeoJSON/CSV exports
+- `api_address_cleanup.py`: repair missing or incomplete addresses using a third-party API geocoder
 
 ## Outputs and caches
 
@@ -71,6 +72,17 @@ python address_cleanup.py \
 
 The script also supports CSV inputs. Use `--in-place` to overwrite the original
 file once you have reviewed the output.
+
+If you have access to a geocoding API (such as the Google Geocoding API), you can
+use the API-based cleanup helper to fill missing or incomplete addresses using a
+forward-search query. Provide an API key explicitly.
+
+```bash
+python api_address_cleanup.py \
+  --input outputs/<region>/fire_stations_with_rings.geojson \
+  --output outputs/<region>/fire_stations_with_complete_addresses.geojson \
+  --api-key "YOUR_API_KEY"
+```
 
 To process every CSV in `outputs/<region>/rings_csv_with_addresses`, point the script at the
 directory:
