@@ -13,6 +13,9 @@ Reusable Fire Station tooling logic now lives in the `fire_station_tools/` packa
 
 Scripts in the repo are thin entry points that call into this package.
 
+Legacy prototype scripts such as `trial01_mvp.py` (an early OSMnx experiment)
+have been removed to keep the tooling focused on the supported entry points.
+
 ## Primary entry points
 
 - `extract_fire_stations.py`: stream fire station extraction from a `.osm.pbf`
