@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -44,7 +45,7 @@ def export_ring_csvs(
         for column in missing_columns:
             ring_df[column] = None
         csv_path = output_dir / f"fire_stations_{ring.label.replace(' ', '_')}.csv"
-        ring_df[columns].to_csv(csv_path, index=False)
+        ring_df[columns].to_csv(csv_path, index=False, quoting=csv.QUOTE_NONNUMERIC)
         print(f"  → {len(ring_df)} stations → {csv_path}")
 
 
