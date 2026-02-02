@@ -7,7 +7,13 @@ from pathlib import Path
 
 import geopandas as gpd
 
-from firefighter_finder.config import DEFAULT_RINGS, RegionConfig, RingDefinition, build_output_paths
+from firefighter_finder.config import (
+    DEFAULT_RINGS,
+    RegionConfig,
+    RingDefinition,
+    build_output_paths,
+    outputs_complete,
+)
 from firefighter_finder.config import load_regions, save_regions
 from firefighter_finder.export import create_interactive_map, export_geojson, export_ring_csvs
 from firefighter_finder.geocode import (
@@ -220,6 +226,13 @@ def main() -> None:
     regions = load_regions(REGIONS_PATH)
     region = choose_region(regions)
     regions[region.name] = region
+    paths = build_output_paths(region)
+    cached_pbf = pbf_cache_path(region.name)
+    if outputs_complete(paths):
+        print("Outputs already exist for this region.")
+        if cached_pbf.exists() and not prompt_yes_no("Re-run the pipeline?", default=False):
+            print("Exiting without running extraction.")
+            return
     region, pbf_path = ensure_pbf(region)
     regions[region.name] = region
     save_regions(regions, REGIONS_PATH)
