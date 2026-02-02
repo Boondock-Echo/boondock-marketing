@@ -4,6 +4,7 @@ from math import atan2, cos, radians, sin, sqrt
 from typing import Iterable
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import pyproj
 from shapely.geometry import Point
@@ -39,13 +40,26 @@ def add_distance_and_rings(
     stations = stations[stations.geometry.type == "Point"].copy()
     stations["lon"] = stations.geometry.x
     stations["lat"] = stations.geometry.y
-    stations["distance_mi"] = stations.apply(
-        lambda row: haversine_distance_miles(center_lat, center_lon, row["lat"], row["lon"]),
-        axis=1,
-    )
-    stations[["ring", "color"]] = stations["distance_mi"].apply(
-        lambda dist: pd.Series(assign_ring(dist, rings))
-    )
+
+    geod = pyproj.Geod(ellps="WGS84")
+    lons = stations["lon"].to_numpy()
+    lats = stations["lat"].to_numpy()
+    center_lons = np.full_like(lons, center_lon, dtype=float)
+    center_lats = np.full_like(lats, center_lat, dtype=float)
+    _, _, distances_m = geod.inv(center_lons, center_lats, lons, lats)
+    stations["distance_mi"] = distances_m / 1609.344
+
+    labels = np.full(len(stations), ">100 miles", dtype=object)
+    colors = np.full(len(stations), "gray", dtype=object)
+    for ring in rings:
+        mask = (stations["distance_mi"] >= ring.min_miles) & (
+            stations["distance_mi"] < ring.max_miles
+        )
+        labels[mask.to_numpy()] = ring.label
+        colors[mask.to_numpy()] = ring.color
+
+    stations["ring"] = labels
+    stations["color"] = colors
     return stations
 
 
