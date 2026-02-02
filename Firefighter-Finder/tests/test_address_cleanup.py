@@ -58,6 +58,7 @@ def test_process_dataframe_repairs_incomplete_addresses():
         df,
         geocode,
         cache,
+        None,
         address_column="address",
         lat_column="lat",
         lon_column="lon",
@@ -67,6 +68,53 @@ def test_process_dataframe_repairs_incomplete_addresses():
     assert corrected_count == 2
     assert address_is_complete(updated.loc[1, "address"])
     assert address_is_complete(updated.loc[2, "address"])
+
+
+def test_process_dataframe_uses_forward_search_when_reverse_fails():
+    df = pd.DataFrame(
+        [
+            {
+                "name": "Long Beach Fire Station #14",
+                "address": "No address tags",
+                "lat": 33.7695534,
+                "lon": -118.1320212,
+                "city": "Long Beach",
+                "state": "CA",
+            }
+        ]
+    )
+
+    def geocode(coords, exactly_one=True, addressdetails=True):
+        return None
+
+    def forward_geocode(query, exactly_one=True, addressdetails=True):
+        assert "Long Beach Fire Station #14" in query
+        return DummyLocation(
+            {
+                "house_number": "5200",
+                "road": "Eliot Ave",
+                "city": "Long Beach",
+                "state": "CA",
+                "postcode": "90803",
+            }
+        )
+
+    cache = {}
+    updated, invalid_count, corrected_count = process_dataframe(
+        df,
+        geocode,
+        cache,
+        forward_geocode,
+        address_column="address",
+        lat_column="lat",
+        lon_column="lon",
+        enable_forward_search=True,
+    )
+
+    assert invalid_count == 1
+    assert corrected_count == 1
+    assert "5200" in updated.loc[0, "address"]
+    assert address_is_complete(updated.loc[0, "address"])
 
 
 def test_ensure_lat_lon_from_geojson_fixture():

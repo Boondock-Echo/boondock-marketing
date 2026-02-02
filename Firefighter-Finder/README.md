@@ -47,6 +47,8 @@ python address_cleanup.py \
 
 Use `--input-dir` to process a folder and `--in-place` to overwrite files after
 review. Add `--non-interactive` to skip prompts and rely on reverse geocoding.
+Use `--enable-forward-search` to fall back to a forward lookup (web search style)
+when reverse geocoding returns no results.
 
 ## Examples
 
