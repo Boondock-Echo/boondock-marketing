@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from math import atan2, cos, radians, sin, sqrt
 from pathlib import Path
 
 import pandas as pd
@@ -23,7 +24,7 @@ from fire_station_tools.address_utils import (
     DEFAULT_USER_AGENT,
     address_is_complete,
     build_search_query,
-    forward_geocode_address,
+    forward_geocode_location,
     ensure_lat_lon,
     load_input,
     require_network,
@@ -58,6 +59,15 @@ def format_manual_address() -> str:
     state_zip = " ".join(part for part in [state, postal] if part).strip()
     parts = [part for part in [street, city, state_zip] if part]
     return ", ".join(parts)
+
+
+def haversine_distance_miles(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    earth_radius = 3958.8
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return earth_radius * c
 
 
 def prompt_for_address(
@@ -144,9 +154,17 @@ def process_dataframe(
     only_incomplete: bool = False,
     require_complete: bool = True,
     enable_forward_search: bool = False,
+    forward_search_max_distance: float = 50.0,
 ) -> tuple[pd.DataFrame, int, int]:
     if address_column not in df.columns:
         raise SystemExit(f"Missing '{address_column}' column in input data.")
+
+    if enable_forward_search and not interactive:
+        print(
+            "  → Forward search requires confirmation. "
+            "Re-run without --non-interactive to opt in."
+        )
+        enable_forward_search = False
 
     target_mask, _, _ = build_target_mask(
         df,
@@ -184,10 +202,28 @@ def process_dataframe(
         if enable_forward_search and forward_geocode:
             if suggestion_is_failure(suggestion):
                 query = build_search_query(row, existing)
-                forward_suggestion = forward_geocode_address(query, forward_geocode)
+                forward_suggestion = None
+                forward_coords = None
+                forward_result = forward_geocode_location(query, forward_geocode)
+                if forward_result:
+                    forward_suggestion, forward_lat, forward_lon = forward_result
+                    forward_coords = (forward_lat, forward_lon)
+
                 if forward_suggestion:
-                    suggestion = forward_suggestion
-                    suggestion_source = "forward search"
+                    if lat_lon_ready and pd.notna(lat) and pd.notna(lon) and forward_coords:
+                        distance = haversine_distance_miles(
+                            float(lat), float(lon), forward_coords[0], forward_coords[1]
+                        )
+                        if distance > forward_search_max_distance:
+                            forward_suggestion = None
+                        else:
+                            suggestion = forward_suggestion
+                            suggestion_source = f"forward search ({distance:.1f} mi)"
+                    elif interactive:
+                        suggestion = forward_suggestion
+                        suggestion_source = "forward search"
+                    else:
+                        forward_suggestion = None
                 elif suggestion:
                     suggestion_source = "reverse geocode"
             elif suggestion:
@@ -205,6 +241,10 @@ def process_dataframe(
                 print(f"\nStation: {name}")
             if lat_lon_ready and pd.notna(lat) and pd.notna(lon):
                 print(f"Coordinates: {lat}, {lon}")
+            if suggestion_source and suggestion_source.startswith("forward search"):
+                if not prompt_yes_no("Use forward-search result?", default=False):
+                    suggestion = None
+                    suggestion_source = None
             corrected = prompt_for_address(
                 existing,
                 suggestion,
@@ -258,6 +298,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Use a forward lookup (name/address web search style) when reverse geocoding fails.",
     )
+    parser.add_argument(
+        "--forward-search-max-distance",
+        type=float,
+        default=50.0,
+        help="Maximum distance (miles) allowed between station coordinates and forward search result.",
+    )
     return parser.parse_args()
 
 
@@ -298,7 +344,7 @@ def main() -> None:
     )
 
     cache: dict[tuple[float, float], str] = {}
-    if input_dir:
+        if input_dir:
         if not input_dir.exists():
             raise SystemExit(f"Input directory not found: {input_dir}")
         files = sorted([*input_dir.glob("*.csv"), *input_dir.glob("*.geojson")])
@@ -326,6 +372,7 @@ def main() -> None:
                 only_missing=args.only_missing,
                 only_incomplete=args.only_incomplete,
                 enable_forward_search=args.enable_forward_search,
+                forward_search_max_distance=args.forward_search_max_distance,
             )
             output_path = path if args.in_place else output_dir / path.name
             write_output(df, output_path, path)
@@ -359,6 +406,7 @@ def main() -> None:
             only_missing=args.only_missing,
             only_incomplete=args.only_incomplete,
             enable_forward_search=args.enable_forward_search,
+            forward_search_max_distance=args.forward_search_max_distance,
         )
         write_output(df, output_path, input_path)
 
