@@ -154,7 +154,10 @@ def process_dataframe(
         lat = row.get(lat_column) if lat_lon_ready else None
         lon = row.get(lon_column) if lat_lon_ready else None
         if lat_lon_ready and pd.notna(lat) and pd.notna(lon):
-            suggestion = reverse_geocode(lat, lon, geocode, cache)
+            try:
+                suggestion = reverse_geocode(lat, lon, geocode, cache)
+            except Exception as exc:
+                suggestion = f"Lookup failed: {type(exc).__name__}"
 
         if interactive:
             name = row.get("name")
